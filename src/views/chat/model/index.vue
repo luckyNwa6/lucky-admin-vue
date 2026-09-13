@@ -91,6 +91,12 @@
           ></el-switch>
         </template>
       </el-table-column>
+      <el-table-column label="OCR" align="center" width="70">
+        <template slot-scope="scope">
+          <el-tag v-if="scope.row.visionOcrEnabled" type="success" size="mini">启用</el-tag>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
       <el-table-column label="次数额度" width="110">
         <template slot-scope="scope">
           {{ scope.row.quotaTotal === null ? '不限' : scope.row.quotaUsed + '/' + scope.row.quotaTotal }}
@@ -148,7 +154,7 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="模型类型" prop="modelType">
-                <el-select v-model="form.modelType" placeholder="请选择模型类型">
+                <el-select v-model="form.modelType" placeholder="请选择模型类型" @change="handleModelTypeChange">
                   <el-option v-for="dict in dict.type.llm_type" :key="dict.value" :label="dict.label" :value="dict.value" />
                 </el-select>
               </el-form-item>
@@ -192,6 +198,13 @@
                 <el-input-number v-model="form.sort" :min="0" controls-position="right" style="width: 100%" />
               </el-form-item>
             </el-col>
+            <el-col v-if="isVisionModel" :span="24">
+              <el-form-item label="扫描 PDF OCR">
+                <el-checkbox v-model="form.visionOcrEnabled">
+                  作为 OCR 模型（多个候选时使用启用且排序最靠前的模型）
+                </el-checkbox>
+              </el-form-item>
+            </el-col>
           </el-row>
         </div>
 
@@ -207,18 +220,19 @@
                   :step="0.1"
                   :precision="1"
                   controls-position="right"
+                  placeholder="留空使用厂商默认值"
                   style="width: 100%"
                 />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="最大 Token" prop="maxTokens">
-                <el-input-number v-model="form.maxTokens" :min="1" :step="128" controls-position="right" style="width: 100%" />
+                <el-input-number v-model="form.maxTokens" :min="1" :step="128" controls-position="right" placeholder="留空使用厂商默认值" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="上下文条数" prop="contextCount">
-                <el-input-number v-model="form.contextCount" :min="1" :step="1" controls-position="right" style="width: 100%" />
+                <el-input-number v-model="form.contextCount" :min="1" :step="1" controls-position="right" placeholder="留空使用系统默认值" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -274,7 +288,7 @@
                   v-model="form.expiresAt"
                   type="date"
                   value-format="yyyy-MM-dd"
-                  placeholder="选择过期日期"
+                  placeholder="留空表示永不过期"
                   style="width: 100%"
                 />
               </el-form-item>
@@ -321,6 +335,7 @@ export default {
       quotaUnlimited: true,
       tokenQuotaUnlimited: true,
       tokenRemaining: null,
+      usageRefreshTimer: null,
       queryParams: { pageNum: 1, pageSize: 10, name: undefined, platform: undefined, modelType: undefined, status: undefined },
       form: {},
       rules: {
@@ -333,6 +348,10 @@ export default {
   created() {
     this.getList()
     this.loadOptions()
+    this.usageRefreshTimer = setInterval(() => this.getList(), 15000)
+  },
+  beforeDestroy() {
+    clearInterval(this.usageRefreshTimer)
   },
   computed: {
     apiKeyGroups() {
@@ -365,6 +384,9 @@ export default {
       const key = (this.apiKeyOptions || []).find(item => item.id === this.form.apiKeyId)
       const code = key ? key.platform : this.form.platform
       return this.platformCodeFormatter(code)
+    },
+    isVisionModel() {
+      return ['vision', 'multimodal'].includes(this.form.modelType)
     }
   },
   methods: {
@@ -416,6 +438,11 @@ export default {
     handleApiKeyChange() {
       this.syncPlatformFromApiKey()
     },
+    handleModelTypeChange() {
+      if (!this.isVisionModel) {
+        this.form.visionOcrEnabled = false
+      }
+    },
     syncPlatformFromApiKey() {
       const key = (this.apiKeyOptions || []).find(item => item.id === this.form.apiKeyId)
       if (key) {
@@ -447,9 +474,11 @@ export default {
         status: 'active',
         modelType: 'text',
         sort: 0,
-        temperature: 0.7,
-        maxTokens: 2048,
-        contextCount: 10,
+        visionOcrEnabled: false,
+        temperature: null,
+        maxTokens: null,
+        contextCount: null,
+        expiresAt: null,
         quotaTotal: null,
         quotaUsed: 0,
         tokenQuotaTotal: null,
@@ -466,6 +495,7 @@ export default {
       const id = row.id || this.ids[0]
       getModel(id).then((response) => {
         this.form = response.data
+        this.form.visionOcrEnabled = Boolean(this.form.visionOcrEnabled)
         if (this.form.expiresAt) {
           this.form.expiresAt = String(this.form.expiresAt).slice(0, 10)
         }
@@ -531,6 +561,11 @@ export default {
         }
       }
       const data = { ...this.form }
+      data.visionOcrEnabled = this.isVisionModel && Boolean(data.visionOcrEnabled)
+      data.clearTemperature = data.temperature === null || data.temperature === undefined || data.temperature === ''
+      data.clearMaxTokens = data.maxTokens === null || data.maxTokens === undefined || data.maxTokens === ''
+      data.clearContextCount = data.contextCount === null || data.contextCount === undefined || data.contextCount === ''
+      data.clearExpiresAt = !data.expiresAt
       if (this.quotaUnlimited) {
         data.quotaTotal = null
         data.quotaUsed = 0
