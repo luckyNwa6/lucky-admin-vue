@@ -97,6 +97,13 @@
           <span v-else>-</span>
         </template>
       </el-table-column>
+      <el-table-column label="工具调用" align="center" width="90">
+        <template slot-scope="scope">
+          <el-tag v-if="scope.row.functionCallingEnabled === true" type="success" size="mini">支持</el-tag>
+          <el-tag v-else-if="scope.row.functionCallingEnabled === false" type="danger" size="mini">不支持</el-tag>
+          <span v-else>未知</span>
+        </template>
+      </el-table-column>
       <el-table-column label="次数额度" width="110">
         <template slot-scope="scope">
           {{ scope.row.quotaTotal === null ? '不限' : scope.row.quotaUsed + '/' + scope.row.quotaTotal }}
@@ -203,6 +210,15 @@
                 <el-checkbox v-model="form.visionOcrEnabled">
                   作为 OCR 模型（多个候选时使用启用且排序最靠前的模型）
                 </el-checkbox>
+              </el-form-item>
+            </el-col>
+            <el-col :span="24">
+              <el-form-item label="工具调用能力">
+                <el-radio-group v-model="form.functionCallingEnabled">
+                  <el-radio :label="true">支持</el-radio>
+                  <el-radio :label="false">不支持</el-radio>
+                  <el-radio :label="null">未知（由供应商响应判断）</el-radio>
+                </el-radio-group>
               </el-form-item>
             </el-col>
           </el-row>
@@ -475,6 +491,7 @@ export default {
         modelType: 'text',
         sort: 0,
         visionOcrEnabled: false,
+        functionCallingEnabled: null,
         temperature: null,
         maxTokens: null,
         contextCount: null,
@@ -496,6 +513,9 @@ export default {
       getModel(id).then((response) => {
         this.form = response.data
         this.form.visionOcrEnabled = Boolean(this.form.visionOcrEnabled)
+        if (this.form.functionCallingEnabled !== true && this.form.functionCallingEnabled !== false) {
+          this.form.functionCallingEnabled = null
+        }
         if (this.form.expiresAt) {
           this.form.expiresAt = String(this.form.expiresAt).slice(0, 10)
         }
@@ -562,6 +582,7 @@ export default {
       }
       const data = { ...this.form }
       data.visionOcrEnabled = this.isVisionModel && Boolean(data.visionOcrEnabled)
+      data.clearFunctionCallingEnabled = data.functionCallingEnabled === null || data.functionCallingEnabled === undefined
       data.clearTemperature = data.temperature === null || data.temperature === undefined || data.temperature === ''
       data.clearMaxTokens = data.maxTokens === null || data.maxTokens === undefined || data.maxTokens === ''
       data.clearContextCount = data.contextCount === null || data.contextCount === undefined || data.contextCount === ''
