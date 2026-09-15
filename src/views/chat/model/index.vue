@@ -221,6 +221,12 @@
                 </el-radio-group>
               </el-form-item>
             </el-col>
+            <el-col :span="24">
+              <el-form-item label="模型参考配置" prop="referenceConfig">
+                <el-input v-model="form.referenceConfig" type="textarea" :rows="8" placeholder="JSON 对象，例如思考参数、工具能力和不支持的模式" />
+                <div class="form-item-hint">示例：{"thinking":{"supported":true,"parameter":"enable_thinking"},"tools":{"supported":true},"unsupported_modes":[]}</div>
+              </el-form-item>
+            </el-col>
           </el-row>
         </div>
 
@@ -248,7 +254,7 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="上下文条数" prop="contextCount">
-                <el-input-number v-model="form.contextCount" :min="1" :step="1" controls-position="right" placeholder="留空使用系统默认值" style="width: 100%" />
+                <el-input-number v-model="form.contextCount" :min="1" :step="1" controls-position="right" placeholder="默认 50" style="width: 100%" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -494,7 +500,8 @@ export default {
         functionCallingEnabled: null,
         temperature: null,
         maxTokens: null,
-        contextCount: null,
+        contextCount: 50,
+        referenceConfig: '',
         expiresAt: null,
         quotaTotal: null,
         quotaUsed: 0,
@@ -512,6 +519,9 @@ export default {
       const id = row.id || this.ids[0]
       getModel(id).then((response) => {
         this.form = response.data
+        if (this.form.contextCount === null || this.form.contextCount === undefined) {
+          this.form.contextCount = 50
+        }
         this.form.visionOcrEnabled = Boolean(this.form.visionOcrEnabled)
         if (this.form.functionCallingEnabled !== true && this.form.functionCallingEnabled !== false) {
           this.form.functionCallingEnabled = null
@@ -581,6 +591,16 @@ export default {
         }
       }
       const data = { ...this.form }
+      if (data.referenceConfig && typeof data.referenceConfig === 'string') {
+        try {
+          const parsed = JSON.parse(data.referenceConfig)
+          if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error('对象格式无效')
+          data.referenceConfig = JSON.stringify(parsed)
+        } catch (e) {
+          this.$modal.msgError('模型参考配置必须是合法的 JSON 对象')
+          return null
+        }
+      }
       data.visionOcrEnabled = this.isVisionModel && Boolean(data.visionOcrEnabled)
       data.clearFunctionCallingEnabled = data.functionCallingEnabled === null || data.functionCallingEnabled === undefined
       data.clearTemperature = data.temperature === null || data.temperature === undefined || data.temperature === ''
@@ -702,6 +722,14 @@ export default {
 .model-config-form .el-form-item__content .el-radio-group,
 .model-config-form .el-form-item__content .el-input {
   width: 100%;
+}
+
+.form-item-hint {
+  margin-top: 4px;
+  color: #909399;
+  font-size: 12px;
+  line-height: 18px;
+  word-break: break-all;
 }
 
 .model-config-form .el-radio-group .el-radio + .el-radio {
