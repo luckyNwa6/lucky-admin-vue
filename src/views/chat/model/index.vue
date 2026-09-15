@@ -235,13 +235,12 @@
           <el-row :gutter="24">
             <el-col :span="12">
               <el-form-item label="温度" prop="temperature">
-                <el-input-number
+                <el-input
                   v-model="form.temperature"
-                  :min="0"
-                  :max="2"
-                  :step="0.1"
-                  :precision="1"
-                  controls-position="right"
+                  type="number"
+                  min="0"
+                  max="2"
+                  step="0.1"
                   placeholder="留空使用厂商默认值"
                   style="width: 100%"
                 />
@@ -490,8 +489,8 @@ export default {
     },
     reset() {
       this.quotaUnlimited = true
-      this.tokenQuotaUnlimited = true
-      this.tokenRemaining = null
+      this.tokenQuotaUnlimited = false
+      this.tokenRemaining = 1000000
       this.form = {
         status: 'active',
         modelType: 'text',
@@ -499,13 +498,13 @@ export default {
         visionOcrEnabled: false,
         functionCallingEnabled: null,
         temperature: null,
-        maxTokens: null,
+        maxTokens: 1000000,
         contextCount: 50,
         referenceConfig: '',
         expiresAt: null,
         quotaTotal: null,
         quotaUsed: 0,
-        tokenQuotaTotal: null,
+        tokenQuotaTotal: 1000000,
         tokenQuotaUsed: 0
       }
     },
@@ -604,6 +603,9 @@ export default {
       data.visionOcrEnabled = this.isVisionModel && Boolean(data.visionOcrEnabled)
       data.clearFunctionCallingEnabled = data.functionCallingEnabled === null || data.functionCallingEnabled === undefined
       data.clearTemperature = data.temperature === null || data.temperature === undefined || data.temperature === ''
+      if (!data.clearTemperature) {
+        data.temperature = Number(data.temperature)
+      }
       data.clearMaxTokens = data.maxTokens === null || data.maxTokens === undefined || data.maxTokens === ''
       data.clearContextCount = data.contextCount === null || data.contextCount === undefined || data.contextCount === ''
       data.clearExpiresAt = !data.expiresAt
