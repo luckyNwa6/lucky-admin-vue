@@ -1,10 +1,10 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch">
-      <el-form-item label="模型名称" prop="name">
+      <el-form-item label="模型ID" prop="modelId">
         <el-input
-          v-model="queryParams.name"
-          placeholder="请输入模型名称"
+          v-model="queryParams.modelId"
+          placeholder="请输入模型ID"
           clearable
           style="width: 240px"
           @keyup.enter.native="handleQuery"
@@ -69,7 +69,6 @@
 
     <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="模型别名" prop="name" min-width="150" :show-overflow-tooltip="true" />
       <el-table-column label="模型ID" prop="modelId" min-width="150" :show-overflow-tooltip="true" />
       <el-table-column label="类型" width="110">
         <template slot-scope="scope">
@@ -344,7 +343,7 @@ export default {
       tokenQuotaUnlimited: true,
       tokenRemaining: null,
       usageRefreshTimer: null,
-      queryParams: { pageNum: 1, pageSize: 10, name: undefined, platform: undefined, modelType: undefined, status: undefined },
+      queryParams: { pageNum: 1, pageSize: 10, modelId: undefined, platform: undefined, modelType: undefined, status: undefined },
       form: {},
       rules: {
         apiKeyId: [{ required: true, message: 'API 密钥不能为空', trigger: 'change' }],
