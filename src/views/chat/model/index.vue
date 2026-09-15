@@ -420,7 +420,9 @@ export default {
       })
       listApiKey({ pageNum: 1, pageSize: 100 }).then((res) => {
         this.apiKeyOptions = res.rows || []
-        if (this.form.apiKeyId) {
+        if (!this.form.id && !this.form.apiKeyId) {
+          this.setDefaultApiKey()
+        } else if (this.form.apiKeyId) {
           this.syncPlatformFromApiKey()
         }
       })
@@ -466,6 +468,13 @@ export default {
         this.form.platform = key.platform
       }
     },
+    setDefaultApiKey() {
+      const defaultKey = (this.apiKeyOptions || []).find(item => String(item.name || '').trim().toLowerCase() === 'bailian')
+      if (defaultKey) {
+        this.form.apiKeyId = defaultKey.id
+        this.form.platform = defaultKey.platform
+      }
+    },
     platformCodeFormatter(code) {
       const option = this.platformOptions.find(item => item.code === code)
       return option ? option.name : code
@@ -490,11 +499,11 @@ export default {
       this.form = {
         status: 'active',
         modelType: 'text',
-        sort: 0,
+        sort: 7,
         visionOcrEnabled: false,
         functionCallingEnabled: null,
         temperature: null,
-        maxTokens: 1000000,
+        maxTokens: null,
         contextCount: 50,
         referenceConfig: '',
         expiresAt: null,
@@ -506,6 +515,7 @@ export default {
     },
     handleAdd() {
       this.reset()
+      this.setDefaultApiKey()
       this.open = true
       this.title = '新增模型配置'
     },
