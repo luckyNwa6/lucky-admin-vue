@@ -234,7 +234,14 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="最大 Token" prop="maxTokens">
-                <el-input-number v-model="form.maxTokens" :min="1" :step="128" controls-position="right" placeholder="留空使用厂商默认值" style="width: 100%" />
+                <el-input
+                  v-model="form.maxTokens"
+                  type="number"
+                  min="1"
+                  step="128"
+                  placeholder="留空使用厂商默认值"
+                  style="width: 100%"
+                />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -311,7 +318,6 @@
         </div>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button v-if="form.id" type="success" plain icon="el-icon-copy-document" @click="handleCopy">复制并新建</el-button>
         <el-button type="primary" @click="submitForm">确 定</el-button>
         <el-button @click="cancel">取 消</el-button>
       </div>
@@ -603,6 +609,11 @@ export default {
         data.temperature = Number(data.temperature)
       }
       data.clearMaxTokens = data.maxTokens === null || data.maxTokens === undefined || data.maxTokens === ''
+      if (data.clearMaxTokens) {
+        data.maxTokens = null
+      } else {
+        data.maxTokens = Number(data.maxTokens)
+      }
       data.clearContextCount = data.contextCount === null || data.contextCount === undefined || data.contextCount === ''
       data.clearExpiresAt = !data.expiresAt
       if (this.quotaUnlimited) {
@@ -619,38 +630,6 @@ export default {
         data.expiresAt = String(data.expiresAt).length > 10 ? data.expiresAt : data.expiresAt + ' 00:00:00'
       }
       return data
-    },
-    handleCopy() {
-      if (!this.form.id) {
-        return
-      }
-      this.$refs['form'].validate((valid) => {
-        if (!valid) {
-          return
-        }
-        const data = this.prepareData()
-        if (!data) {
-          return
-        }
-        data.id = undefined
-        data.userId = undefined
-        data.quotaUsed = 0
-        data.tokenQuotaUsed = 0
-        data.createdAt = undefined
-        data.updatedAt = undefined
-        data.expiryRemindedAt = undefined
-        this.$modal
-          .confirm('确认复制当前模型配置并新建一条？')
-          .then(() => {
-            return addModel(data)
-          })
-          .then(() => {
-            this.$modal.msgSuccess('复制成功')
-            this.open = false
-            this.getList()
-          })
-          .catch(() => {})
-      })
     },
     submitForm() {
       this.$refs['form'].validate((valid) => {
