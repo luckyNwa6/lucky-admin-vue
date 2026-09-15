@@ -69,7 +69,7 @@
 
     <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="名称" prop="name" min-width="150" :show-overflow-tooltip="true" />
+      <el-table-column label="模型别名" prop="name" min-width="150" :show-overflow-tooltip="true" />
       <el-table-column label="模型ID" prop="modelId" min-width="150" :show-overflow-tooltip="true" />
       <el-table-column label="类型" width="110">
         <template slot-scope="scope">
@@ -89,19 +89,6 @@
             inactive-value="disabled"
             @change="handleStatusChange(scope.row)"
           ></el-switch>
-        </template>
-      </el-table-column>
-      <el-table-column label="OCR" align="center" width="70">
-        <template slot-scope="scope">
-          <el-tag v-if="scope.row.visionOcrEnabled" type="success" size="mini">启用</el-tag>
-          <span v-else>-</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="工具调用" align="center" width="90">
-        <template slot-scope="scope">
-          <el-tag v-if="scope.row.functionCallingEnabled === true" type="success" size="mini">支持</el-tag>
-          <el-tag v-else-if="scope.row.functionCallingEnabled === false" type="danger" size="mini">不支持</el-tag>
-          <span v-else>未知</span>
         </template>
       </el-table-column>
       <el-table-column label="次数额度" width="110">
@@ -155,8 +142,13 @@
           <div class="model-config-section-title">基本信息</div>
           <el-row :gutter="24">
             <el-col :span="12">
-              <el-form-item label="配置名称" prop="name">
-                <el-input v-model="form.name" placeholder="请输入配置名称" />
+              <el-form-item label="模型ID" prop="modelId">
+                <el-input v-model="form.modelId" placeholder="请输入模型ID" @blur="fillModelAlias" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="模型别名" prop="name">
+                <el-input v-model="form.name" placeholder="不填则默认使用模型ID" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -178,11 +170,6 @@
             <el-col :span="12">
               <el-form-item label="绑定平台">
                 <el-input :value="selectedPlatformName" placeholder="选择 API 密钥后自动带出" disabled />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="模型ID" prop="modelId">
-                <el-input v-model="form.modelId" placeholder="请输入模型ID" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -360,7 +347,6 @@ export default {
       queryParams: { pageNum: 1, pageSize: 10, name: undefined, platform: undefined, modelType: undefined, status: undefined },
       form: {},
       rules: {
-        name: [{ required: true, message: '配置名称不能为空', trigger: 'blur' }],
         apiKeyId: [{ required: true, message: 'API 密钥不能为空', trigger: 'change' }],
         modelId: [{ required: true, message: '模型ID不能为空', trigger: 'blur' }]
       }
@@ -464,6 +450,11 @@ export default {
         this.form.visionOcrEnabled = false
       }
     },
+    fillModelAlias() {
+      if (!String(this.form.name || '').trim() && String(this.form.modelId || '').trim()) {
+        this.form.name = String(this.form.modelId).trim()
+      }
+    },
     syncPlatformFromApiKey() {
       const key = (this.apiKeyOptions || []).find(item => item.id === this.form.apiKeyId)
       if (key) {
@@ -518,6 +509,7 @@ export default {
       const id = row.id || this.ids[0]
       getModel(id).then((response) => {
         this.form = response.data
+        this.form.name = this.form.name || this.form.modelId
         if (this.form.contextCount === null || this.form.contextCount === undefined) {
           this.form.contextCount = 50
         }
@@ -590,6 +582,11 @@ export default {
         }
       }
       const data = { ...this.form }
+      data.name = String(data.name || '').trim() || String(data.modelId || '').trim()
+      if (!data.name) {
+        this.$modal.msgError('请填写模型ID')
+        return null
+      }
       if (data.referenceConfig && typeof data.referenceConfig === 'string') {
         try {
           const parsed = JSON.parse(data.referenceConfig)
