@@ -114,6 +114,9 @@
             <el-tooltip content="复制链接" placement="top">
               <el-button type="text" icon="el-icon-link" @click.stop="copyUrl(file)"></el-button>
             </el-tooltip>
+            <el-tooltip v-if="canPreview(file.fileName)" content="预览" placement="top">
+              <el-button type="text" icon="el-icon-view" @click.stop="handlePreview(file)"></el-button>
+            </el-tooltip>
             <el-tooltip content="删除" placement="top">
               <el-button type="text" icon="el-icon-delete" class="danger-btn" @click.stop="deleteFile(file)"></el-button>
             </el-tooltip>
@@ -169,8 +172,9 @@
               {{ formatTime(scope.row.lastModified) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="200" align="center" fixed="right">
+          <el-table-column label="操作" width="250" align="center" fixed="right">
             <template slot-scope="scope">
+              <el-button v-if="canPreview(scope.row.fileName)" type="text" size="small" icon="el-icon-view" @click="handlePreview(scope.row)">预览</el-button>
               <el-button type="text" size="small" icon="el-icon-edit" @click="handleRename(scope.row)">修改</el-button>
               <el-button type="text" size="small" icon="el-icon-link" @click="copyUrl(scope.row)">复制链接</el-button>
               <el-button type="text" size="small" icon="el-icon-delete" class="danger-btn" @click="deleteFile(scope.row)">删除</el-button>
@@ -227,6 +231,25 @@
       :data="{ prefix: currentPrefix }"
       @success="onUploadSuccess"
     />
+
+    <el-dialog
+      :visible.sync="previewVisible"
+      :title="previewFileName"
+      width="85%"
+      append-to-body
+      custom-class="cloud-preview-dialog"
+    >
+      <div class="cloud-preview-container" v-loading="previewLoading">
+        <div v-if="previewUrl" class="cloud-preview-content">
+          <div v-if="previewFileType === 'md'" class="cloud-markdown-preview" v-html="markdownContent"></div>
+          <div v-else-if="previewFileType === 'txt'" class="cloud-txt-preview"><pre>{{ txtContent }}</pre></div>
+          <iframe v-else-if="previewFileType === 'pdf'" :src="previewUrl" frameborder="0"></iframe>
+          <iframe v-else-if="previewFileType === 'office'" :src="getOfficePreviewUrl(previewUrl)" frameborder="0"></iframe>
+          <div v-else class="cloud-preview-empty"><i class="el-icon-download"></i><p>该文件暂不支持在线预览，请下载查看</p></div>
+        </div>
+        <div v-else class="cloud-preview-empty"><i class="el-icon-document"></i><p>暂无预览内容</p></div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -269,7 +292,14 @@ export default {
       renameVisible: false,
       renameName: '',
       renameFile: null,
-      renaming: false
+      renaming: false,
+      previewVisible: false,
+      previewLoading: false,
+      previewUrl: '',
+      previewFileName: '',
+      previewFileType: '',
+      markdownContent: '',
+      txtContent: ''
     }
   },
   created() {
@@ -399,6 +429,87 @@ export default {
         this.$message.error('复制失败，请手动复制')
       }
       document.body.removeChild(textarea)
+    },
+
+    canPreview(fileName) {
+      return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'pdf', 'txt', 'md', 'markdown', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'potx'].includes(this.getExtension(fileName))
+    },
+
+    getExtension(fileName) {
+      if (!fileName || !fileName.includes('.')) return ''
+      return fileName.toLowerCase().split('.').pop()
+    },
+
+    getPreviewType(fileName) {
+      const ext = this.getExtension(fileName)
+      if (['md', 'markdown'].includes(ext)) return 'md'
+      if (ext === 'txt') return 'txt'
+      if (ext === 'pdf') return 'pdf'
+      if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'potx'].includes(ext)) return 'office'
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) return 'image'
+      return ''
+    },
+
+    async handlePreview(file) {
+      const previewType = this.getPreviewType(file.fileName)
+      if (!previewType || !file.url) {
+        this.$message.info('该文件暂不支持在线预览，请下载查看')
+        return
+      }
+      if (previewType === 'image') {
+        window.open(file.url, '_blank')
+        return
+      }
+      this.previewVisible = true
+      this.previewLoading = true
+      this.previewUrl = file.url
+      this.previewFileName = file.fileName
+      this.previewFileType = previewType
+      this.markdownContent = ''
+      this.txtContent = ''
+      try {
+        if (previewType === 'md') {
+          const response = await fetch(file.url)
+          this.markdownContent = this.renderMarkdown(await response.text())
+        } else if (previewType === 'txt') {
+          this.txtContent = await this.fetchTextContent(file.url)
+        }
+      } catch (error) {
+        console.error('预览云文件失败:', error)
+        this.$message.error('预览失败，请检查文件链接或直接下载')
+      } finally {
+        this.previewLoading = false
+      }
+    },
+
+    getOfficePreviewUrl(url) {
+      return 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(url)
+    },
+
+    async fetchTextContent(url) {
+      const response = await fetch(url)
+      return this.decodeTextContent(await response.arrayBuffer())
+    },
+
+    decodeTextContent(bytes) {
+      if (!bytes || bytes.byteLength === 0) return ''
+      const view = new Uint8Array(bytes)
+      if (view.length >= 3 && view[0] === 0xef && view[1] === 0xbb && view[2] === 0xbf) return new TextDecoder('utf-8').decode(view.subarray(3))
+      if (view.length >= 2 && view[0] === 0xff && view[1] === 0xfe) return new TextDecoder('utf-16le').decode(view.subarray(2))
+      try {
+        return new TextDecoder('utf-8', { fatal: true }).decode(view)
+      } catch (error) {
+        return new TextDecoder('gbk').decode(view)
+      }
+    },
+
+    renderMarkdown(text) {
+      if (!text) return ''
+      let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')
+      html = html.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')
+      return '<p>' + html + '</p>'
     },
 
     // ========== 批量操作 ==========
@@ -955,6 +1066,52 @@ export default {
 
 .danger-btn {
   color: #f5222d !important;
+}
+
+.cloud-preview-container {
+  min-height: 260px;
+  background: #f7f9fc;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+.cloud-preview-content iframe {
+  display: block;
+  width: 100%;
+  height: 75vh;
+  border: 0;
+  background: #fff;
+}
+
+.cloud-markdown-preview,
+.cloud-txt-preview {
+  min-height: 260px;
+  padding: 24px 30px;
+  color: #303133;
+  line-height: 1.75;
+  background: #fff;
+}
+
+.cloud-txt-preview pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: inherit;
+}
+
+.cloud-preview-empty {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+}
+
+.cloud-preview-empty i {
+  font-size: 48px;
+  margin-bottom: 14px;
 }
 
 // ========== 分页 ==========
