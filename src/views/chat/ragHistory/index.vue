@@ -24,6 +24,11 @@
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="标题" prop="title" min-width="220" :show-overflow-tooltip="true" />
       <el-table-column label="用户" prop="username" width="120" :show-overflow-tooltip="true" />
+      <el-table-column label="来源" prop="source" width="120">
+        <template slot-scope="scope">
+          <el-tag :type="getSourceType(scope.row.source)" size="small">{{ getSourceLabel(scope.row.source) }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="消息数" prop="message_count" width="90" />
       <el-table-column label="模型配置" width="220" :show-overflow-tooltip="true">
         <template slot-scope="scope">
@@ -59,6 +64,9 @@
           </el-descriptions-item>
           <el-descriptions-item label="提问用户">
             <el-tag type="info" size="small">{{ detail.session.username || detail.session.user_id || '未知' }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="来源">
+            <el-tag :type="getSourceType(detail.session.source)" size="small">{{ getSourceLabel(detail.session.source) }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="模型配置">
             {{ detail.session.model_name || detail.session.model_config_id || '-' }}
@@ -165,6 +173,12 @@ export default {
       if (confidence >= 0.7) return 'success'
       if (confidence >= 0.4) return 'warning'
       return 'danger'
+    },
+    getSourceLabel(source) {
+      return { scheduled_task: '定时任务', embed: '嵌入组件', ai_platform: 'AI平台' }[source] || 'AI平台'
+    },
+    getSourceType(source) {
+      return { scheduled_task: 'warning', embed: 'success', ai_platform: 'primary' }[source] || 'info'
     },
     formatDuration(seconds) {
       const value = Number(seconds) || 0
