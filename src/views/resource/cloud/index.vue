@@ -432,7 +432,7 @@ export default {
     },
 
     canPreview(fileName) {
-      return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'pdf', 'txt', 'md', 'markdown', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'potx'].includes(this.getExtension(fileName))
+      return ['pdf', 'txt', 'md', 'markdown', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'potx'].includes(this.getExtension(fileName))
     },
 
     getExtension(fileName) {
@@ -446,7 +446,6 @@ export default {
       if (ext === 'txt') return 'txt'
       if (ext === 'pdf') return 'pdf'
       if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'potx'].includes(ext)) return 'office'
-      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) return 'image'
       return ''
     },
 
@@ -456,15 +455,13 @@ export default {
         this.$message.info('该文件暂不支持在线预览，请下载查看')
         return
       }
-      if (previewType === 'image') {
-        window.open(file.url, '_blank')
-        return
-      }
       this.previewVisible = true
       this.previewLoading = true
-      this.previewUrl = file.url
+      this.previewUrl = previewType === 'office' && ['ppt', 'pptx', 'potx'].includes(this.getExtension(file.fileName))
+        ? this.getPptPreviewUrl(file.url)
+        : file.url
       this.previewFileName = file.fileName
-      this.previewFileType = previewType
+      this.previewFileType = this.previewUrl !== file.url ? 'pdf' : previewType
       this.markdownContent = ''
       this.txtContent = ''
       try {
@@ -484,6 +481,11 @@ export default {
 
     getOfficePreviewUrl(url) {
       return 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(url)
+    },
+
+    getPptPreviewUrl(url) {
+      if (!url) return ''
+      return url.replace('/profile/rag/ppt/', '/profile/rag/ppt-preview/').replace(/\.(pptx|potx)$/i, '.pdf')
     },
 
     async fetchTextContent(url) {
