@@ -23,7 +23,11 @@
     <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="标题" prop="title" min-width="220" :show-overflow-tooltip="true" />
-      <el-table-column label="用户" prop="username" width="120" :show-overflow-tooltip="true" />
+      <el-table-column label="用户" prop="username" width="120" :show-overflow-tooltip="true">
+        <template slot-scope="scope">
+          <span>{{ getDisplayUsername(scope.row) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="来源" prop="source" width="120">
         <template slot-scope="scope">
           <el-tag :type="getSourceType(scope.row.source)" size="small">{{ getSourceLabel(scope.row.source) }}</el-tag>
@@ -63,7 +67,7 @@
             {{ detail.session.updated_at }}
           </el-descriptions-item>
           <el-descriptions-item label="提问用户">
-            <el-tag type="info" size="small">{{ detail.session.username || detail.session.user_id || '未知' }}</el-tag>
+            <el-tag type="info" size="small">{{ getDisplayUsername(detail.session) }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="来源">
             <el-tag :type="getSourceType(detail.session.source)" size="small">{{ getSourceLabel(detail.session.source) }}</el-tag>
@@ -179,6 +183,10 @@ export default {
     },
     getSourceType(source) {
       return { scheduled_task: 'warning', embed: 'success', ai_platform: 'primary' }[source] || 'info'
+    },
+    getDisplayUsername(row) {
+      if (row && row.source === 'embed') return '匿名'
+      return (row && (row.username || row.user_id)) || '未知'
     },
     formatDuration(seconds) {
       const value = Number(seconds) || 0
