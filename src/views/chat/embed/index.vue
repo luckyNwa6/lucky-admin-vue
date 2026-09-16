@@ -121,7 +121,9 @@
           <el-input v-model="form.apiKey" placeholder="请输入嵌入小部件 API Key" show-password />
         </el-form-item>
         <el-form-item label="配额角色" prop="quotaRoleKey">
-          <el-input v-model="form.quotaRoleKey" placeholder="如 embed，留空使用 common" />
+          <el-select v-model="form.quotaRoleKey" placeholder="请选择配额角色" clearable filterable style="width: 100%">
+            <el-option v-for="roleKey in quotaRoleOptions" :key="roleKey" :label="roleKey" :value="roleKey" />
+          </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="isActive">
           <el-switch v-model="form.isActive" />
@@ -163,7 +165,7 @@
 </template>
 
 <script>
-import { listEmbed, getEmbed, addEmbed, updateEmbed, delEmbed } from '@/api/chat'
+import { listEmbed, getEmbed, addEmbed, updateEmbed, delEmbed, listRoleQuota } from '@/api/chat'
 
 export default {
   name: 'ChatEmbed',
@@ -180,6 +182,7 @@ export default {
       title: '',
       codeDialogVisible: false,
       embedCode: '',
+      quotaRoleOptions: [],
       queryParams: { pageNum: 1, pageSize: 10, name: undefined },
       form: {},
       rules: {
@@ -190,6 +193,7 @@ export default {
   },
   created() {
     this.getList()
+    this.getQuotaRoles()
   },
   methods: {
     getList() {
@@ -203,6 +207,11 @@ export default {
         .catch(() => {
           this.loading = false
         })
+    },
+    getQuotaRoles() {
+      listRoleQuota().then((response) => {
+        this.quotaRoleOptions = (response.data || []).map((item) => item.role_key).filter(Boolean)
+      })
     },
     handleQuery() {
       this.queryParams.pageNum = 1
