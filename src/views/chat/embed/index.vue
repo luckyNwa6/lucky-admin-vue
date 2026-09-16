@@ -54,6 +54,7 @@
     <el-table v-loading="loading" :data="list" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="嵌入名称" prop="name" min-width="130" :show-overflow-tooltip="true" />
+      <el-table-column label="配额角色" prop="quotaRoleKey" width="110" />
       <el-table-column label="API Key" min-width="130" :show-overflow-tooltip="true">
         <template slot-scope="scope">
           <span class="api-key-text">{{ scope.row.apiKey }}</span>
@@ -118,6 +119,9 @@
         </el-form-item>
         <el-form-item label="API Key" prop="apiKey">
           <el-input v-model="form.apiKey" placeholder="请输入嵌入小部件 API Key" show-password />
+        </el-form-item>
+        <el-form-item label="配额角色" prop="quotaRoleKey">
+          <el-input v-model="form.quotaRoleKey" placeholder="如 embed，留空使用 common" />
         </el-form-item>
         <el-form-item label="状态" prop="isActive">
           <el-switch v-model="form.isActive" />
@@ -214,7 +218,7 @@ export default {
       this.multiple = !selection.length
     },
     reset() {
-      this.form = { isActive: true, themeColor: '#409EFF' }
+      this.form = { isActive: true, themeColor: '#409EFF', quotaRoleKey: 'common' }
     },
     handleAdd() {
       this.reset()
