@@ -65,6 +65,16 @@
           <el-tag :type="scope.row.isActive ? 'success' : 'info'">{{ scope.row.isActive ? '启用' : '停用' }}</el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="创建人" prop="createdByName" width="110" :show-overflow-tooltip="true">
+        <template slot-scope="scope">
+          <span>{{ scope.row.createdByName || scope.row.createdBy || '-' }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="更新人" width="110" :show-overflow-tooltip="true">
+        <template slot-scope="scope">
+          <span>{{ scope.row.updatedByName || scope.row.updatedBy || scope.row.createdByName || scope.row.createdBy || '-' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="创建时间" align="center" width="180">
         <template slot-scope="scope">
           <span>{{ parseTime(scope.row.createdAt) }}</span>
