@@ -100,7 +100,7 @@
 </template>
 
 <script>
-import { listSession, getSession, delSession, batchDeleteSession } from '@/api/chat'
+import { listSession, getSession, batchDeleteSession } from '@/api/chat'
 import { marked } from 'marked'
 
 export default {
@@ -174,9 +174,15 @@ export default {
       }
       return minutes + ' 分 ' + rest + ' 秒'
     },
+    async deleteSessionsInBatches(ids, batchSize = 10) {
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const batch = ids.slice(i, i + batchSize)
+        await batchDeleteSession(this.chatType, batch)
+      }
+    },
     handleDelete(row) {
       this.$modal.confirm('是否确认删除该会话？').then(() => {
-        return delSession(this.chatType, row.id)
+        return this.deleteSessionsInBatches([row.id])
       }).then(() => {
         this.getList()
         this.$modal.msgSuccess('删除成功')
@@ -185,7 +191,7 @@ export default {
     handleBatchDelete() {
       if (!this.ids.length) return
       this.$modal.confirm('是否确认删除选中的会话？').then(() => {
-        return batchDeleteSession(this.chatType, this.ids)
+        return this.deleteSessionsInBatches(this.ids)
       }).then(() => {
         this.getList()
         this.$modal.msgSuccess('删除成功')
