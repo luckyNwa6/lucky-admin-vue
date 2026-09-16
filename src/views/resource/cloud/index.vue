@@ -457,7 +457,8 @@ export default {
       }
       this.previewVisible = true
       this.previewLoading = true
-      this.previewUrl = previewType === 'office' && ['ppt', 'pptx', 'potx'].includes(this.getExtension(file.fileName))
+      const hasGeneratedPptPreview = /^complete_/i.test(file.fileName || '')
+      this.previewUrl = previewType === 'office' && hasGeneratedPptPreview && ['ppt', 'pptx', 'potx'].includes(this.getExtension(file.fileName))
         ? this.getPptPreviewUrl(file.url)
         : file.url
       this.previewFileName = file.fileName
