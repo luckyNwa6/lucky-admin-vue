@@ -129,6 +129,14 @@ export function updateShareDoc(id, docName, remark) {
   })
 }
 
+export function updateShareDocSettings(data) {
+  return request({
+    url: '/shareDoc/settings',
+    method: 'post',
+    data
+  })
+}
+
 /**
  * 获取文档预览URL
  * @param {number} id - 文档ID

@@ -24,6 +24,17 @@
           <el-option label="Markdown" value="md" />
           <el-option label="PDF" value="pdf" />
           <el-option label="TXT" value="txt" />
+          <el-option label="PPT" value="ppt" />
+        </el-select>
+        <el-select
+          v-model="searchParams.scene"
+          placeholder="使用场景"
+          clearable
+          style="width: 130px; margin-right: 12px"
+          @change="loadDocs"
+        >
+          <el-option label="归档文档" value="archive" />
+          <el-option label="模板" value="template" />
         </el-select>
         <el-button type="primary" icon="el-icon-search" @click="loadDocs">搜索</el-button>
       </div>
@@ -68,6 +79,18 @@
           <el-tag :type="getDocTypeTag(scope.row.docType)" size="small">
             {{ getDocTypeLabel(scope.row.docType) }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="场景" width="100" align="center">
+        <template slot-scope="scope">
+          <el-tag size="small" :type="scope.row.scene === 'template' ? 'success' : 'info'">
+            {{ scope.row.scene === 'template' ? '模板' : '归档' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" width="100" align="center">
+        <template slot-scope="scope">
+          <el-switch v-model="scope.row.enabled" :active-value="1" :inactive-value="0" @change="toggleEnabled(scope.row)" />
         </template>
       </el-table-column>
       <el-table-column label="大小" width="100" align="center">
@@ -171,7 +194,8 @@ import {
   deleteShareDocs,
   updateShareDoc,
   getShareDocPreviewUrl,
-  getShareDocDownloadUrl
+  getShareDocDownloadUrl,
+  updateShareDocSettings
 } from '@/api/bed/shareDoc'
 import ShareDocUpload from '@/components/ShareDocUpload'
 
@@ -184,6 +208,7 @@ export default {
       searchParams: {
         docName: '',
         docType: '',
+        scene: '',
         page: 1,
         limit: 20
       },
@@ -293,6 +318,18 @@ export default {
         this.editLoading = false
       }
     },
+    async toggleEnabled(row) {
+      try {
+        const res = await updateShareDocSettings({ id: row.id, enabled: row.enabled })
+        if (res.code !== 200) {
+          row.enabled = row.enabled === 1 ? 0 : 1
+          this.$message.error(res.msg || '状态更新失败')
+        }
+      } catch (error) {
+        row.enabled = row.enabled === 1 ? 0 : 1
+        this.$message.error('状态更新失败')
+      }
+    },
     // 删除文档
     async handleDelete(row) {
       try {
@@ -337,7 +374,7 @@ export default {
     async handlePreview(row) {
       this.previewLoading = true
       this.previewVisible = true
-      this.previewDocType = row.docType
+      this.previewDocType = row.previewUrl ? 'pdf' : row.docType
       this.previewDocName = row.docName
       this.previewUrl = ''
       this.markdownContent = ''
@@ -346,7 +383,7 @@ export default {
       try {
         const res = await getShareDocPreviewUrl(row.id)
         if (res.code === 200) {
-          this.previewUrl = res.data.fileUrl
+          this.previewUrl = row.previewUrl || res.data.fileUrl
 
           // 如果是Markdown，直接获取内容并渲染
           if (row.docType === 'md') {
@@ -483,7 +520,8 @@ export default {
         word: 'el-icon-document',
         md: 'el-icon-document',
         pdf: 'el-icon-document',
-        txt: 'el-icon-document'
+        txt: 'el-icon-document',
+        ppt: 'el-icon-document'
       }
       return icons[docType] || 'el-icon-document'
     },
@@ -494,7 +532,8 @@ export default {
         word: 'primary',
         md: 'warning',
         pdf: 'danger',
-        txt: 'info'
+        txt: 'info',
+        ppt: 'warning'
       }
       return tags[docType] || 'info'
     },
@@ -505,7 +544,8 @@ export default {
         word: 'Word',
         md: 'Markdown',
         pdf: 'PDF',
-        txt: 'TXT'
+        txt: 'TXT',
+        ppt: 'PowerPoint'
       }
       return labels[docType] || docType
     },
