@@ -34,7 +34,7 @@
           <span class="card-title">日志查询</span>
           <span class="card-hint">只读查看，不会修改服务器日志</span>
         </div>
-        <el-switch v-model="autoRefresh" active-text="自动刷新" @change="handleAutoRefresh" />
+        <el-switch v-model="autoRefresh" active-text="自动刷新（10秒）" @change="handleAutoRefresh" />
       </div>
 
       <el-form :model="queryParams" size="small" :inline="true" class="query-form" @submit.native.prevent>
@@ -131,7 +131,7 @@ export default {
       totalMatched: 0,
       logDetailVisible: false,
       selectedLog: {},
-      autoRefresh: false,
+      autoRefresh: true,
       refreshTimer: null,
       queryParams: {
         service: 'rag',
@@ -154,6 +154,7 @@ export default {
     this.loadOverview()
     this.loadLogFiles()
     this.loadLogs()
+    this.handleAutoRefresh(true)
   },
   beforeDestroy() {
     this.clearRefreshTimer()
@@ -219,7 +220,12 @@ export default {
     },
     handleAutoRefresh(enabled) {
       this.clearRefreshTimer()
-      if (enabled) this.refreshTimer = setInterval(() => { this.loadOverview(); this.loadLogs() }, 10000)
+      if (enabled) {
+        this.refreshTimer = setInterval(() => {
+          this.loadOverview()
+          this.loadLogs()
+        }, 10000)
+      }
     },
     clearRefreshTimer() {
       if (this.refreshTimer) clearInterval(this.refreshTimer)
