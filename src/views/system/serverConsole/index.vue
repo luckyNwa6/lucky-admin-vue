@@ -29,7 +29,13 @@
           <span class="card-title">日志查询</span>
           <span class="card-hint">全量搜索，展示最新 200 条 · 只读查看，不会修改服务器日志</span>
         </div>
-        <el-switch v-model="autoRefresh" active-text="自动刷新（10秒）" @change="handleAutoRefresh" />
+        <div class="refresh-controls">
+          <span class="refresh-label">刷新频率</span>
+          <el-select v-model="refreshInterval" size="mini" class="refresh-select" @change="handleRefreshIntervalChange">
+            <el-option v-for="option in refreshIntervalOptions" :key="option.value" :label="option.label" :value="option.value" />
+          </el-select>
+          <el-switch v-model="autoRefresh" active-text="自动刷新" @change="handleAutoRefresh" />
+        </div>
       </div>
 
       <el-form :model="queryParams" size="small" :inline="true" class="query-form" @submit.native.prevent>
@@ -143,6 +149,9 @@
 <script>
 import { getServerOverview, getServerLogFiles, searchServerLogs } from '@/api/system/serverConsole'
 
+const REFRESH_INTERVAL_KEY = 'server-console-refresh-interval'
+const REFRESH_INTERVAL_OPTIONS = [10, 30, 60, 300, 600, 1800]
+
 export default {
   name: 'ServerConsole',
   data() {
@@ -162,6 +171,15 @@ export default {
       selectedLog: {},
       autoRefresh: true,
       refreshTimer: null,
+      refreshInterval: 600,
+      refreshIntervalOptions: [
+        { value: 10, label: '10 秒' },
+        { value: 30, label: '30 秒' },
+        { value: 60, label: '1 分钟' },
+        { value: 300, label: '5 分钟' },
+        { value: 600, label: '10 分钟' },
+        { value: 1800, label: '30 分钟' }
+      ],
       queryParams: {
         service: 'rag',
         source: 'runtime',
@@ -190,6 +208,7 @@ export default {
     }
   },
   created() {
+    this.restoreRefreshInterval()
     this.loadOverview()
     this.loadLogFiles()
     this.loadLogs()
@@ -270,8 +289,16 @@ export default {
         this.refreshTimer = setInterval(() => {
           this.loadOverview()
           this.loadLogs()
-        }, 10000)
+        }, this.refreshInterval * 1000)
       }
+    },
+    handleRefreshIntervalChange() {
+      localStorage.setItem(REFRESH_INTERVAL_KEY, String(this.refreshInterval))
+      if (this.autoRefresh) this.handleAutoRefresh(true)
+    },
+    restoreRefreshInterval() {
+      const savedInterval = Number(localStorage.getItem(REFRESH_INTERVAL_KEY))
+      if (REFRESH_INTERVAL_OPTIONS.includes(savedInterval)) this.refreshInterval = savedInterval
     },
     clearRefreshTimer() {
       if (this.refreshTimer) clearInterval(this.refreshTimer)
@@ -314,6 +341,9 @@ export default {
 .health-dot.is-good { background: #67c23a; box-shadow: 0 0 0 3px rgba(103, 194, 58, .13); }
 .health-overview-actions { display: flex; align-items: center; gap: 10px; margin-left: 16px; }
 .health-overview-actions >>> .el-button { padding-right: 0; }
+.refresh-controls { display: flex; align-items: center; gap: 8px; }
+.refresh-label { color: #909399; font-size: 12px; }
+.refresh-select { width: 92px; }
 .service-card { padding: 11px 14px; border: 1px solid #ebeef5; border-left: 3px solid #67c23a; border-radius: 4px; background: #fff; }
 .service-card.is-offline { border-left-color: #f56c6c; }
 .service-name { margin-right: 8px; color: #303133; font-size: 15px; font-weight: 600; }
@@ -345,6 +375,7 @@ export default {
 }
 @media (max-width: 900px) {
   .page-heading, .log-card-header, .log-summary, .health-overview { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .refresh-controls { width: 100%; justify-content: flex-end; }
   .health-overview-actions { width: 100%; justify-content: space-between; margin-left: 0; }
   .health-detail-grid { grid-template-columns: 1fr; }
   .query-form >>> .el-form-item { margin-right: 8px; }
