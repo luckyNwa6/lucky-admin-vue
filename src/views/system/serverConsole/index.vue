@@ -95,6 +95,11 @@
         <el-table-column label="日志内容" min-width="500" show-overflow-tooltip>
           <template slot-scope="scope"><span class="log-message">{{ scope.row.message }}</span></template>
         </el-table-column>
+        <el-table-column label="操作" width="72" align="center">
+          <template slot-scope="scope">
+            <el-button type="text" size="mini" @click.stop="showLogDetail(scope.row)">查看</el-button>
+          </template>
+        </el-table-column>
       </el-table>
     </el-card>
 
