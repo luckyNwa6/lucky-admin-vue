@@ -24,7 +24,7 @@
       <el-table-column label="消息数" prop="message_count" width="90" />
       <el-table-column label="模型配置" width="220" :show-overflow-tooltip="true">
         <template slot-scope="scope">
-          <span>{{ scope.row.model_name || scope.row.model_config_id || '-' }}</span>
+          <span>{{ getModelDisplayName(scope.row) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="更新时间" align="center" prop="updated_at" width="170">
@@ -58,7 +58,7 @@
             <el-tag type="info" size="small">{{ detail.session.username || detail.session.user_id || '未知' }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="模型配置">
-            {{ detail.session.model_name || detail.session.model_config_id || '-' }}
+            {{ getModelDisplayName(detail.session) }}
           </el-descriptions-item>
         </el-descriptions>
 
@@ -162,6 +162,10 @@ export default {
         return conv.sources[0].model
       }
       return ''
+    },
+    getModelDisplayName(row) {
+      if (!row) return '历史数据未记录模型'
+      return row.model_name || row.model_config_id || '历史数据未记录模型'
     },
     formatDuration(seconds) {
       const value = Number(seconds) || 0
