@@ -77,14 +77,14 @@
 
       <div class="log-summary">
         <span>{{ currentLogTitle }}</span>
-        <span class="summary-right">匹配 {{ totalMatched }} 条，显示最近 {{ logs.length }} 条</span>
+        <span class="summary-right">匹配 {{ totalMatched }} 条，显示最近 {{ logs.length }} 条 · 点击日志行查看完整内容</span>
       </div>
 
       <el-alert v-if="logsError" class="log-alert" type="error" :title="logsError" show-icon :closable="false" />
       <div v-else-if="logsLoading && !logs.length" class="log-state-hint">正在读取日志，请稍候…</div>
       <div v-else-if="!logsLoading && !logs.length" class="log-state-hint">没有找到符合条件的日志，请清空关键字或切换日志来源。</div>
 
-      <el-table :data="logs" v-loading="logsLoading" height="520" class="log-table" empty-text="暂无匹配日志">
+      <el-table :data="logs" v-loading="logsLoading" height="520" class="log-table" empty-text="暂无匹配日志" @row-click="showLogDetail">
         <el-table-column prop="timestamp" label="时间" width="190" />
         <el-table-column label="级别" width="90" align="center">
           <template slot-scope="scope">
@@ -97,6 +97,15 @@
         </el-table-column>
       </el-table>
     </el-card>
+
+    <el-dialog title="日志详情" :visible.sync="logDetailVisible" width="760px" append-to-body>
+      <div class="log-detail-meta">
+        <el-tag size="mini" :type="levelType(selectedLog.level)">{{ selectedLog.level || '-' }}</el-tag>
+        <span>{{ selectedLog.timestamp || '-' }}</span>
+        <span>行号 {{ selectedLog.lineNo || '-' }}</span>
+      </div>
+      <pre class="log-detail-message">{{ selectedLog.message || '暂无日志内容' }}</pre>
+    </el-dialog>
   </div>
 </template>
 
@@ -115,6 +124,8 @@ export default {
       logFiles: [],
       logs: [],
       totalMatched: 0,
+      logDetailVisible: false,
+      selectedLog: {},
       autoRefresh: false,
       refreshTimer: null,
       queryParams: {
@@ -197,6 +208,10 @@ export default {
       this.queryParams.fileName = ''
       this.loadLogs()
     },
+    showLogDetail(row) {
+      this.selectedLog = row
+      this.logDetailVisible = true
+    },
     handleAutoRefresh(enabled) {
       this.clearRefreshTimer()
       if (enabled) this.refreshTimer = setInterval(() => { this.loadOverview(); this.loadLogs() }, 10000)
@@ -248,6 +263,9 @@ export default {
 .log-alert { margin: 4px 0 10px; }
 .log-state-hint { padding: 12px 16px; margin-bottom: 10px; color: #909399; font-size: 13px; background: #f8f9fb; border: 1px dashed #dcdfe6; border-radius: 4px; }
 .log-message { white-space: pre-wrap; word-break: break-all; font-family: Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+.log-table >>> .el-table__row { cursor: pointer; }
+.log-detail-meta { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: #606266; font-size: 13px; }
+.log-detail-message { padding: 14px 16px; margin: 0; color: #303133; white-space: pre-wrap; word-break: break-all; font-family: Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.6; background: #f8f9fb; border: 1px solid #ebeef5; border-radius: 4px; }
 .file-option-meta { float: right; color: #909399; font-size: 12px; }
 @media (max-width: 900px) { .service-cards { grid-template-columns: 1fr; } }
 </style>
