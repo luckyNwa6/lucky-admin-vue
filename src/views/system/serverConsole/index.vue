@@ -84,7 +84,7 @@
       <div v-else-if="logsLoading && !logs.length" class="log-state-hint">正在读取日志，请稍候…</div>
       <div v-else-if="!logsLoading && !logs.length" class="log-state-hint">没有找到符合条件的日志，请清空关键字或切换日志来源。</div>
 
-      <el-table :data="logs" v-loading="logsLoading" height="520" class="log-table" empty-text="暂无匹配日志" @row-click="showLogDetail">
+      <el-table :data="logs" v-loading="logsLoading" height="calc(100vh - 360px)" class="log-table" empty-text="暂无匹配日志" @row-click="showLogDetail">
         <el-table-column prop="timestamp" label="时间" width="190" />
         <el-table-column label="级别" width="90" align="center">
           <template slot-scope="scope">
@@ -248,29 +248,41 @@ export default {
   align-items: center;
   justify-content: space-between;
 }
-.page-heading { margin-bottom: 16px; }
+.page-heading { margin-bottom: 10px; }
 .page-title { color: #303133; font-size: 20px; font-weight: 600; }
 .page-description, .card-hint { color: #909399; font-size: 12px; }
 .page-description { margin-top: 6px; }
-.service-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
-.service-card { padding: 18px 20px; border: 1px solid #ebeef5; border-left: 4px solid #67c23a; border-radius: 4px; background: #fff; }
+.service-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+.service-card { padding: 11px 14px; border: 1px solid #ebeef5; border-left: 3px solid #67c23a; border-radius: 4px; background: #fff; }
 .service-card.is-offline { border-left-color: #f56c6c; }
-.service-name { margin-right: 10px; color: #303133; font-size: 16px; font-weight: 600; }
-.service-icon { color: #409eff; font-size: 28px; }
-.service-meta, .service-foot { display: flex; gap: 18px; color: #606266; font-size: 13px; }
-.service-meta { margin-top: 18px; }
-.service-foot { margin-top: 12px; color: #909399; font-size: 12px; }
+.service-name { margin-right: 8px; color: #303133; font-size: 15px; font-weight: 600; }
+.service-icon { color: #409eff; font-size: 20px; }
+.service-meta, .service-foot { display: flex; gap: 14px; color: #606266; font-size: 12px; }
+.service-meta { margin-top: 8px; }
+.service-foot { margin-top: 6px; color: #909399; font-size: 11px; }
 .log-card { border: 1px solid #ebeef5; }
+.log-card >>> .el-card__header { padding: 11px 16px; }
+.log-card >>> .el-card__body { padding: 10px 16px 12px; }
 .card-title { margin-right: 12px; color: #303133; font-size: 15px; font-weight: 600; }
-.query-form { padding-top: 4px; }
+.query-form { padding-top: 0; }
+.query-form >>> .el-form-item { margin-bottom: 8px; }
 .log-summary { margin: 4px 0 10px; color: #606266; font-size: 13px; }
 .summary-right { color: #909399; font-size: 12px; }
 .log-alert { margin: 4px 0 10px; }
 .log-state-hint { padding: 12px 16px; margin-bottom: 10px; color: #909399; font-size: 13px; background: #f8f9fb; border: 1px dashed #dcdfe6; border-radius: 4px; }
 .log-message { white-space: pre-wrap; word-break: break-all; font-family: Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+.log-table >>> th, .log-table >>> td { padding: 6px 0; }
 .log-table >>> .el-table__row { cursor: pointer; }
 .log-detail-meta { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: #606266; font-size: 13px; }
 .log-detail-message { padding: 14px 16px; margin: 0; color: #303133; white-space: pre-wrap; word-break: break-all; font-family: Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.6; background: #f8f9fb; border: 1px solid #ebeef5; border-radius: 4px; }
 .file-option-meta { float: right; color: #909399; font-size: 12px; }
-@media (max-width: 900px) { .service-cards { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) {
+  .service-cards { grid-template-columns: 1fr; }
+  .log-table >>> .el-table__body-wrapper { overflow-x: auto; }
+}
+@media (max-width: 900px) {
+  .page-heading, .log-card-header, .log-summary { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .query-form >>> .el-form-item { margin-right: 8px; }
+  .summary-right { white-space: normal; }
+}
 </style>
