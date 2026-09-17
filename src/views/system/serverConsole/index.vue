@@ -5,7 +5,6 @@
         <div class="page-title">服务日志控制台</div>
         <div class="page-description">查看云服务器上 Lucky Admin 和 Lucky RAG 的运行状态与日志。</div>
       </div>
-      <el-button type="primary" icon="el-icon-refresh" size="mini" :loading="overviewLoading" @click="loadOverview">刷新状态</el-button>
     </div>
 
     <div v-loading="overviewLoading" class="health-overview">
@@ -35,6 +34,7 @@
             <el-option v-for="option in refreshIntervalOptions" :key="option.value" :label="option.label" :value="option.value" />
           </el-select>
           <el-switch v-model="autoRefresh" active-text="自动刷新" @change="handleAutoRefresh" />
+          <el-button icon="el-icon-refresh" size="mini" :loading="manualRefreshLoading" @click="handleManualRefresh">手动刷新</el-button>
         </div>
       </div>
 
@@ -114,7 +114,30 @@
     </el-dialog>
 
     <el-dialog title="运行状态详情" :visible.sync="healthDialogVisible" width="820px" append-to-body>
-      <div class="health-dialog-caption">服务和基础依赖共 {{ healthTotal || 4 }} 项，状态每 10 秒自动更新。</div>
+      <div class="health-dialog-caption">服务和基础依赖共 {{ healthTotal || 4 }} 项，{{ refreshDescription }}。</div>
+      <div class="cloud-resource-card">
+        <div class="cloud-resource-heading">
+          <div>
+            <div class="cloud-resource-kicker">云服务器</div>
+            <div class="cloud-resource-title">主机资源</div>
+          </div>
+          <i class="el-icon-monitor cloud-resource-icon" />
+        </div>
+        <div class="cloud-resource-grid">
+          <div class="resource-metric">
+            <span class="resource-label">CPU 使用率</span>
+            <strong>{{ formatPercent(serverStats.cpuPercent) }}</strong>
+          </div>
+          <div class="resource-metric">
+            <span class="resource-label">内存使用率</span>
+            <strong>{{ formatPercent(serverStats.memoryUsedPercent) }}</strong>
+          </div>
+          <div class="resource-metric resource-metric-wide">
+            <span class="resource-label">内存占用</span>
+            <strong>{{ formatBytes(serverStats.memoryUsedBytes) }} / {{ formatBytes(serverStats.memoryTotalBytes) }}</strong>
+          </div>
+        </div>
+      </div>
       <div class="health-group-title">服务</div>
       <div class="health-detail-grid">
         <div v-for="service in services" :key="service.key" class="service-card" :class="serviceIsHealthy(service) ? 'is-online' : 'is-offline'">
@@ -162,6 +185,7 @@ export default {
       logsRequestId: 0,
       services: [],
       dependencies: [],
+      serverStats: {},
       checkedAt: '',
       logFiles: [],
       logs: [],
@@ -171,6 +195,7 @@ export default {
       selectedLog: {},
       autoRefresh: true,
       refreshTimer: null,
+      manualRefreshLoading: false,
       refreshInterval: 600,
       refreshIntervalOptions: [
         { value: 10, label: '10 秒' },
@@ -201,6 +226,13 @@ export default {
       if (!this.healthTotal) return '检查中'
       return this.healthyCount === this.healthTotal ? '全部正常' : '存在异常'
     },
+    refreshIntervalText() {
+      const option = this.refreshIntervalOptions.find(item => item.value === this.refreshInterval)
+      return option ? option.label : '10 分钟'
+    },
+    refreshDescription() {
+      return this.autoRefresh ? `按当前频率（${this.refreshIntervalText}）自动更新` : '自动刷新已关闭，可手动刷新'
+    },
     currentLogTitle() {
       const service = this.queryParams.service === 'admin' ? 'Lucky Admin' : 'Lucky RAG'
       const source = this.queryParams.source === 'business' ? '业务日志' : '运行日志'
@@ -224,6 +256,7 @@ export default {
         const res = await getServerOverview()
         if (res.code === 200) {
           this.checkedAt = res.data.checkedAt || ''
+          this.serverStats = res.data.server || {}
           this.services = res.data.services || []
           this.dependencies = res.data.dependencies || []
         }
@@ -296,6 +329,14 @@ export default {
       localStorage.setItem(REFRESH_INTERVAL_KEY, String(this.refreshInterval))
       if (this.autoRefresh) this.handleAutoRefresh(true)
     },
+    async handleManualRefresh() {
+      this.manualRefreshLoading = true
+      try {
+        await Promise.all([this.loadOverview(), this.loadLogFiles(), this.loadLogs()])
+      } finally {
+        this.manualRefreshLoading = false
+      }
+    },
     restoreRefreshInterval() {
       const savedInterval = Number(localStorage.getItem(REFRESH_INTERVAL_KEY))
       if (REFRESH_INTERVAL_OPTIONS.includes(savedInterval)) this.refreshInterval = savedInterval
@@ -316,6 +357,16 @@ export default {
     },
     formatDate(value) {
       return value ? new Date(value).toLocaleString() : '-'
+    },
+    formatPercent(value) {
+      return value == null ? '-' : `${Number(value).toFixed(1)}%`
+    },
+    formatBytes(value) {
+      const size = Number(value) || 0
+      if (!size) return '-'
+      if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+      if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`
+      return `${(size / 1024 / 1024 / 1024).toFixed(1)} GB`
     }
   }
 }
@@ -352,6 +403,14 @@ export default {
 .service-meta { margin-top: 8px; }
 .service-foot { margin-top: 6px; color: #909399; font-size: 11px; }
 .health-dialog-caption { margin: -4px 0 14px; color: #909399; font-size: 12px; }
+.cloud-resource-card { padding: 12px 14px; border: 1px solid #dfe6ef; border-radius: 5px; background: #f7fbff; }
+.cloud-resource-heading { display: flex; align-items: center; justify-content: space-between; }
+.cloud-resource-kicker, .resource-label { color: #909399; font-size: 11px; }
+.cloud-resource-title { margin-top: 2px; color: #303133; font-size: 14px; font-weight: 600; }
+.cloud-resource-icon { color: #409eff; font-size: 20px; }
+.cloud-resource-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.resource-metric { display: flex; flex-direction: column; gap: 4px; padding-left: 10px; border-left: 2px solid #409eff; }
+.resource-metric strong { color: #303133; font-size: 15px; font-weight: 600; }
 .health-group-title { padding-left: 8px; margin: 12px 0 8px; color: #606266; font-size: 13px; font-weight: 600; border-left: 2px solid #409eff; }
 .health-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .log-card { border: 1px solid #ebeef5; }
@@ -378,6 +437,8 @@ export default {
   .refresh-controls { width: 100%; justify-content: flex-end; }
   .health-overview-actions { width: 100%; justify-content: space-between; margin-left: 0; }
   .health-detail-grid { grid-template-columns: 1fr; }
+  .cloud-resource-grid { grid-template-columns: 1fr 1fr; }
+  .resource-metric-wide { grid-column: 1 / -1; }
   .query-form >>> .el-form-item { margin-right: 8px; }
   .summary-right { white-space: normal; }
 }
