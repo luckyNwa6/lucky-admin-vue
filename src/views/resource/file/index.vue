@@ -35,48 +35,49 @@
 
     <!-- 右侧主内容区 -->
     <div class="bed-main">
-      <!-- 工具栏 -->
-      <div class="bed-toolbar">
-        <div class="toolbar-left">
+      <!-- 查询条件 -->
+      <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch">
+        <el-form-item label="图片名称" prop="picName">
           <el-input
-            v-model="searchName"
-            placeholder="搜索图片名称..."
-            prefix-icon="el-icon-search"
+            v-model="queryParams.picName"
+            placeholder="请输入图片名称"
             clearable
-            style="width: 240px; margin-right: 12px"
-            @clear="handleSearch"
+            style="width: 240px"
             @keyup.enter.native="handleSearch"
           />
-          <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
-        </div>
-        <div class="toolbar-right">
-          <el-button-group class="view-switch">
-            <el-button
-              :type="viewMode === 'grid' ? 'primary' : 'default'"
-              icon="el-icon-menu"
-              size="small"
-              @click="viewMode = 'grid'"
-            />
-            <el-button
-              :type="viewMode === 'table' ? 'primary' : 'default'"
-              icon="el-icon-s-grid"
-              size="small"
-              @click="viewMode = 'table'"
-            />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" icon="el-icon-search" size="mini" @click="handleSearch">搜索</el-button>
+          <el-button icon="el-icon-refresh" size="mini" @click="resetSearch">重置</el-button>
+        </el-form-item>
+      </el-form>
+
+      <!-- 操作栏 -->
+      <el-row :gutter="10" class="mb8">
+        <el-col :span="1.5">
+          <el-button type="primary" plain icon="el-icon-upload2" size="mini" @click="handleUpload">上传图片</el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="success" plain icon="el-icon-rank" size="mini" :disabled="selectedIds.length === 0" @click="handleBatchMove">
+            移动到
+          </el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button type="danger" plain icon="el-icon-delete" size="mini" :disabled="selectedIds.length === 0" @click="handleBatchDelete">
+            删除
+          </el-button>
+        </el-col>
+        <el-col :span="1.5">
+          <el-button icon="el-icon-refresh" size="mini" :loading="syncing" @click="handleSyncFolder">同步</el-button>
+        </el-col>
+        <el-col :span="1.5" class="view-switch-col">
+          <el-button-group>
+            <el-button :type="viewMode === 'grid' ? 'primary' : 'default'" icon="el-icon-menu" size="mini" @click="viewMode = 'grid'" />
+            <el-button :type="viewMode === 'table' ? 'primary' : 'default'" icon="el-icon-s-grid" size="mini" @click="viewMode = 'table'" />
           </el-button-group>
-          <el-divider direction="vertical"></el-divider>
-          <el-button type="primary" icon="el-icon-upload2" @click="handleUpload">上传图片</el-button>
-          <el-dropdown @command="handleBatchCommand" trigger="click" style="margin-left: 8px">
-            <el-button :disabled="selectedIds.length === 0">
-              批量操作 <i class="el-icon-arrow-down el-icon--right"></i>
-            </el-button>
-            <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item command="move" icon="el-icon-rank">移动到...</el-dropdown-item>
-              <el-dropdown-item command="delete" icon="el-icon-delete" divided>批量删除</el-dropdown-item>
-            </el-dropdown-menu>
-          </el-dropdown>
-        </div>
-      </div>
+        </el-col>
+        <right-toolbar :showSearch.sync="showSearch" @queryTable="loadImages"></right-toolbar>
+      </el-row>
 
       <!-- 统计信息 -->
       <div class="bed-stats">
@@ -135,8 +136,6 @@
         <el-table
           :data="dataList"
           v-loading="loading"
-          border
-          height="100%"
           @selection-change="handleSelectionChange"
           style="width: 100%"
         >
@@ -172,19 +171,14 @@
       </div>
 
       <!-- 分页 -->
-      <div class="bed-pagination">
-        <el-pagination
-          v-if="total > 0"
-          background
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          :current-page="pageIndex"
-          :page-size="pageSize"
-          :page-sizes="[24, 48, 72, 96]"
-          @current-change="handlePageChange"
-          @size-change="handleSizeChange"
-        />
-      </div>
+      <pagination
+        v-show="total > 0"
+        :total="total"
+        :page.sync="pageIndex"
+        :limit.sync="pageSize"
+        :page-sizes="[24, 48, 72, 96]"
+        @pagination="loadImages"
+      />
     </div>
 
     <!-- 上传弹窗 -->
@@ -265,7 +259,10 @@ export default {
       total: 0,
       pageIndex: 1,
       pageSize: 24,
-      searchName: '',
+      showSearch: true,
+      queryParams: {
+        picName: '',
+      },
       // 选择
       selectedIds: [],
       // 上传
@@ -416,7 +413,7 @@ export default {
       this.selectedIds = []
       try {
         const params = {
-          picName: this.searchName,
+          picName: this.queryParams.picName,
           folder: this.selectedFolderId,
           page: this.pageIndex,
           limit: this.pageSize,
@@ -439,6 +436,11 @@ export default {
     handleSearch() {
       this.pageIndex = 1
       this.loadImages()
+    },
+
+    resetSearch() {
+      this.queryParams.picName = ''
+      this.handleSearch()
     },
 
     handlePageChange(page) {
