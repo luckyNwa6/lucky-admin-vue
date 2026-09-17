@@ -37,10 +37,10 @@
     <div class="bed-main">
       <!-- 查询条件 -->
       <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch">
-        <el-form-item label="图片名称" prop="picName">
+        <el-form-item label="文件名" prop="picName">
           <el-input
             v-model="queryParams.picName"
-            placeholder="请输入图片名称"
+            placeholder="请输入文件名"
             clearable
             style="width: 240px"
             @keyup.enter.native="handleSearch"
