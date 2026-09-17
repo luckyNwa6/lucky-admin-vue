@@ -8,42 +8,18 @@
       <el-button type="primary" icon="el-icon-refresh" size="mini" :loading="overviewLoading" @click="loadOverview">刷新状态</el-button>
     </div>
 
-    <div class="service-cards" v-loading="overviewLoading">
-      <div v-for="service in services" :key="service.key" class="service-card" :class="service.running ? 'is-online' : 'is-offline'">
-        <div class="service-card-header">
-          <div>
-            <span class="service-name">{{ service.name }}</span>
-            <el-tag size="mini" :type="service.running && service.healthCode >= 200 && service.healthCode < 400 ? 'success' : 'danger'">
-              {{ service.running ? '运行中' : '未运行' }}
-            </el-tag>
-          </div>
-          <i :class="service.key === 'rag' ? 'el-icon-cpu' : 'el-icon-s-platform'" class="service-icon"></i>
+    <div v-loading="overviewLoading" class="health-overview">
+      <div class="health-overview-main">
+        <div class="health-overview-kicker">运行状态</div>
+        <div class="health-overview-title">服务器与依赖</div>
+        <div class="health-overview-meta">
+          <span class="health-overview-count"><i class="health-dot" :class="healthTotal && healthyCount === healthTotal ? 'is-good' : 'is-muted'" />{{ healthyCount }}/{{ healthTotal || 4 }} 项正常</span>
+          <span>更新于 {{ formatDate(checkedAt) }}</span>
         </div>
-        <div class="service-meta">
-          <span>端口 {{ service.port }}</span>
-          <span>PID {{ service.pid || '-' }}</span>
-          <span>健康 {{ service.healthCode || '失败' }}</span>
-        </div>
-        <div class="service-foot">日志 {{ service.logAvailable ? formatSize(service.logSize) : '不可用' }} · {{ formatDate(service.logUpdatedAt) }}</div>
       </div>
-    </div>
-
-    <div class="section-label">依赖健康</div>
-    <div class="service-cards dependency-cards" v-loading="overviewLoading">
-      <div v-for="dependency in dependencies" :key="dependency.key" class="service-card" :class="dependency.healthy ? 'is-online' : 'is-offline'">
-        <div class="service-card-header">
-          <div>
-            <span class="service-name">{{ dependency.name }}</span>
-            <el-tag size="mini" :type="dependency.healthy ? 'success' : 'danger'">
-              {{ dependency.healthy ? '正常' : '异常' }}
-            </el-tag>
-          </div>
-          <i :class="dependency.key === 'redis' ? 'el-icon-connection' : 'el-icon-coin'" class="service-icon"></i>
-        </div>
-        <div class="service-meta">
-          <span>{{ dependency.message }}</span>
-          <span>响应 {{ dependency.latencyMs == null ? '-' : `${dependency.latencyMs} ms` }}</span>
-        </div>
+      <div class="health-overview-actions">
+        <el-tag size="mini" :type="healthTotal && healthyCount === healthTotal ? 'success' : 'warning'">{{ healthStatusText }}</el-tag>
+        <el-button type="text" size="small" @click="healthDialogVisible = true">查看详情 <i class="el-icon-arrow-right" /></el-button>
       </div>
     </div>
 
@@ -103,7 +79,7 @@
       <div v-else-if="logsLoading && !logs.length" class="log-state-hint">正在读取日志，请稍候…</div>
       <div v-else-if="!logsLoading && !logs.length" class="log-state-hint">没有找到符合条件的日志，请清空关键字或切换日志来源。</div>
 
-      <el-table :data="logs" v-loading="logsLoading" height="calc(100vh - 360px)" class="log-table" empty-text="暂无匹配日志" @row-click="showLogDetail">
+      <el-table v-loading="logsLoading" :data="logs" height="calc(100vh - 360px)" class="log-table" empty-text="暂无匹配日志" @row-click="showLogDetail">
         <el-table-column prop="timestamp" label="时间" width="190" />
         <el-table-column label="级别" width="90" align="center">
           <template slot-scope="scope">
@@ -130,6 +106,37 @@
       </div>
       <pre class="log-detail-message">{{ selectedLog.message || '暂无日志内容' }}</pre>
     </el-dialog>
+
+    <el-dialog title="运行状态详情" :visible.sync="healthDialogVisible" width="820px" append-to-body>
+      <div class="health-dialog-caption">服务和基础依赖共 {{ healthTotal || 4 }} 项，状态每 10 秒自动更新。</div>
+      <div class="health-group-title">服务</div>
+      <div class="health-detail-grid">
+        <div v-for="service in services" :key="service.key" class="service-card" :class="serviceIsHealthy(service) ? 'is-online' : 'is-offline'">
+          <div class="service-card-header">
+            <div>
+              <span class="service-name">{{ service.name }}</span>
+              <el-tag size="mini" :type="serviceIsHealthy(service) ? 'success' : 'danger'">{{ service.running ? '运行中' : '未运行' }}</el-tag>
+            </div>
+            <i :class="service.key === 'rag' ? 'el-icon-cpu' : 'el-icon-s-platform'" class="service-icon" />
+          </div>
+          <div class="service-meta"><span>端口 {{ service.port }}</span><span>PID {{ service.pid || '-' }}</span><span>健康 {{ service.healthCode || '失败' }}</span></div>
+          <div class="service-foot">日志 {{ service.logAvailable ? formatSize(service.logSize) : '不可用' }} · {{ formatDate(service.logUpdatedAt) }}</div>
+        </div>
+      </div>
+      <div class="health-group-title">依赖</div>
+      <div class="health-detail-grid">
+        <div v-for="dependency in dependencies" :key="dependency.key" class="service-card" :class="dependency.healthy ? 'is-online' : 'is-offline'">
+          <div class="service-card-header">
+            <div>
+              <span class="service-name">{{ dependency.name }}</span>
+              <el-tag size="mini" :type="dependency.healthy ? 'success' : 'danger'">{{ dependency.healthy ? '正常' : '异常' }}</el-tag>
+            </div>
+            <i :class="dependency.key === 'redis' ? 'el-icon-connection' : 'el-icon-coin'" class="service-icon" />
+          </div>
+          <div class="service-meta"><span>{{ dependency.message }}</span><span>响应 {{ dependency.latencyMs == null ? '-' : `${dependency.latencyMs} ms` }}</span></div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -146,10 +153,12 @@ export default {
       logsRequestId: 0,
       services: [],
       dependencies: [],
+      checkedAt: '',
       logFiles: [],
       logs: [],
       totalMatched: 0,
       logDetailVisible: false,
+      healthDialogVisible: false,
       selectedLog: {},
       autoRefresh: true,
       refreshTimer: null,
@@ -159,16 +168,26 @@ export default {
         fileName: '',
         keyword: '',
         level: '',
-        limit: 200,
-      },
+        limit: 200
+      }
     }
   },
   computed: {
+    healthTotal() {
+      return this.services.length + this.dependencies.length
+    },
+    healthyCount() {
+      return this.services.filter(this.serviceIsHealthy).length + this.dependencies.filter(item => item.healthy).length
+    },
+    healthStatusText() {
+      if (!this.healthTotal) return '检查中'
+      return this.healthyCount === this.healthTotal ? '全部正常' : '存在异常'
+    },
     currentLogTitle() {
       const service = this.queryParams.service === 'admin' ? 'Lucky Admin' : 'Lucky RAG'
       const source = this.queryParams.source === 'business' ? '业务日志' : '运行日志'
       return `${service} · ${source}${this.queryParams.fileName ? ` · ${this.queryParams.fileName}` : ''}`
-    },
+    }
   },
   created() {
     this.loadOverview()
@@ -185,6 +204,7 @@ export default {
       try {
         const res = await getServerOverview()
         if (res.code === 200) {
+          this.checkedAt = res.data.checkedAt || ''
           this.services = res.data.services || []
           this.dependencies = res.data.dependencies || []
         }
@@ -241,6 +261,9 @@ export default {
       this.selectedLog = row
       this.logDetailVisible = true
     },
+    serviceIsHealthy(service) {
+      return Boolean(service.running && service.healthCode >= 200 && service.healthCode < 400)
+    },
     handleAutoRefresh(enabled) {
       this.clearRefreshTimer()
       if (enabled) {
@@ -266,8 +289,8 @@ export default {
     },
     formatDate(value) {
       return value ? new Date(value).toLocaleString() : '-'
-    },
-  },
+    }
+  }
 }
 </script>
 
@@ -281,9 +304,16 @@ export default {
 .page-title { color: #303133; font-size: 20px; font-weight: 600; }
 .page-description, .card-hint { color: #909399; font-size: 12px; }
 .page-description { margin-top: 6px; }
-.section-label { margin: 4px 0 6px; color: #606266; font-size: 13px; font-weight: 600; }
-.service-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
-.dependency-cards { margin-bottom: 12px; }
+.health-overview { display: flex; align-items: center; justify-content: space-between; min-height: 64px; padding: 10px 14px; margin-bottom: 12px; border: 1px solid #dfe6ef; border-left: 3px solid #409eff; border-radius: 6px; background: linear-gradient(110deg, #f7fbff 0%, #fff 62%); }
+.health-overview-main { min-width: 0; }
+.health-overview-kicker { color: #909399; font-size: 11px; letter-spacing: .08em; }
+.health-overview-title { margin-top: 1px; color: #303133; font-size: 16px; font-weight: 600; }
+.health-overview-meta { display: flex; gap: 16px; margin-top: 5px; color: #909399; font-size: 12px; }
+.health-overview-count { color: #606266; }
+.health-dot { display: inline-block; width: 6px; height: 6px; margin-right: 6px; vertical-align: 1px; border-radius: 50%; background: #c0c4cc; }
+.health-dot.is-good { background: #67c23a; box-shadow: 0 0 0 3px rgba(103, 194, 58, .13); }
+.health-overview-actions { display: flex; align-items: center; gap: 10px; margin-left: 16px; }
+.health-overview-actions >>> .el-button { padding-right: 0; }
 .service-card { padding: 11px 14px; border: 1px solid #ebeef5; border-left: 3px solid #67c23a; border-radius: 4px; background: #fff; }
 .service-card.is-offline { border-left-color: #f56c6c; }
 .service-name { margin-right: 8px; color: #303133; font-size: 15px; font-weight: 600; }
@@ -291,6 +321,9 @@ export default {
 .service-meta, .service-foot { display: flex; gap: 14px; color: #606266; font-size: 12px; }
 .service-meta { margin-top: 8px; }
 .service-foot { margin-top: 6px; color: #909399; font-size: 11px; }
+.health-dialog-caption { margin: -4px 0 14px; color: #909399; font-size: 12px; }
+.health-group-title { padding-left: 8px; margin: 12px 0 8px; color: #606266; font-size: 13px; font-weight: 600; border-left: 2px solid #409eff; }
+.health-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .log-card { border: 1px solid #ebeef5; }
 .log-card >>> .el-card__header { padding: 11px 16px; }
 .log-card >>> .el-card__body { padding: 10px 16px 12px; }
@@ -308,11 +341,12 @@ export default {
 .log-detail-message { padding: 14px 16px; margin: 0; color: #303133; white-space: pre-wrap; word-break: break-all; font-family: Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.6; background: #f8f9fb; border: 1px solid #ebeef5; border-radius: 4px; }
 .file-option-meta { float: right; color: #909399; font-size: 12px; }
 @media (max-width: 1100px) {
-  .service-cards { grid-template-columns: 1fr; }
   .log-table >>> .el-table__body-wrapper { overflow-x: auto; }
 }
 @media (max-width: 900px) {
-  .page-heading, .log-card-header, .log-summary { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .page-heading, .log-card-header, .log-summary, .health-overview { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .health-overview-actions { width: 100%; justify-content: space-between; margin-left: 0; }
+  .health-detail-grid { grid-template-columns: 1fr; }
   .query-form >>> .el-form-item { margin-right: 8px; }
   .summary-right { white-space: normal; }
 }
