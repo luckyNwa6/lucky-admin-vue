@@ -1,32 +1,36 @@
 <template>
   <div class="blog-container">
-    <!-- 工具栏 -->
-    <div class="toolbar">
-      <div class="toolbar-left">
+    <!-- 查询条件 -->
+    <el-form :model="searchParams" ref="queryForm" size="small" :inline="true" v-show="showSearch">
+      <el-form-item label="文件名" prop="keyword">
         <el-input
           v-model="searchParams.keyword"
-          placeholder="搜索文件名..."
-          prefix-icon="el-icon-search"
+          placeholder="请输入文件名"
           clearable
-          style="width: 240px; margin-right: 12px"
+          style="width: 240px"
           @clear="handleSearch"
           @keyup.enter.native="handleSearch"
         />
-        <el-select
-          v-model="searchParams.category"
-          placeholder="全部分类"
-          clearable
-          style="width: 160px; margin-right: 12px"
-          @change="handleSearch"
-        >
+      </el-form-item>
+      <el-form-item label="分类" prop="category">
+        <el-select v-model="searchParams.category" placeholder="请选择分类" clearable style="width: 240px">
           <el-option v-for="category in categories" :key="category" :label="category" :value="category" />
         </el-select>
-        <el-button type="primary" icon="el-icon-search" @click="handleSearch">搜索</el-button>
-      </div>
-      <div class="toolbar-right">
-        <el-button type="primary" icon="el-icon-refresh" :loading="syncLoading || syncRunning" @click="handleSync">同步博客</el-button>
-      </div>
-    </div>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleSearch">搜索</el-button>
+        <el-button icon="el-icon-refresh" size="mini" @click="resetSearch">重置</el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5">
+        <el-button type="primary" plain icon="el-icon-refresh" size="mini" :loading="syncLoading || syncRunning" @click="handleSync">
+          同步博客
+        </el-button>
+      </el-col>
+      <right-toolbar :showSearch.sync="showSearch" @queryTable="loadPosts"></right-toolbar>
+    </el-row>
 
     <!-- 统计信息 -->
     <div class="stats">
@@ -50,7 +54,7 @@
     </div>
 
     <!-- 博客列表 -->
-    <el-table :data="posts" v-loading="loading" border style="width: 100%">
+    <el-table :data="posts" v-loading="loading" style="width: 100%">
       <el-table-column prop="fileName" label="文件名" min-width="240" show-overflow-tooltip />
       <el-table-column prop="version" label="版本" width="80" align="center" />
       <el-table-column label="分类" width="170" align="center">
@@ -83,19 +87,14 @@
     </el-table>
 
     <!-- 分页 -->
-    <div class="pagination">
-      <el-pagination
-        v-if="total > 0"
-        background
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        :current-page="searchParams.page"
-        :page-size="searchParams.limit"
-        :page-sizes="[20, 50, 100]"
-        @current-change="handlePageChange"
-        @size-change="handleSizeChange"
-      />
-    </div>
+    <pagination
+      v-show="total > 0"
+      :total="total"
+      :page.sync="searchParams.page"
+      :limit.sync="searchParams.limit"
+      :page-sizes="[20, 50, 100]"
+      @pagination="loadPosts"
+    />
 
     <!-- 预览弹窗 -->
     <el-dialog :visible.sync="previewVisible" :title="previewTitle" width="88%" top="4vh" append-to-body custom-class="preview-dialog">
@@ -147,6 +146,7 @@ export default {
         page: 1,
         limit: 20,
       },
+      showSearch: true,
       posts: [],
       categories: [],
       total: 0,
@@ -192,6 +192,11 @@ export default {
     handleSearch() {
       this.searchParams.page = 1
       this.loadPosts()
+    },
+    resetSearch() {
+      this.searchParams.keyword = ''
+      this.searchParams.category = ''
+      this.handleSearch()
     },
     async loadPosts() {
       this.loading = true

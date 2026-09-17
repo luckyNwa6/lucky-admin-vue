@@ -1,24 +1,19 @@
 <template>
   <div class="share-doc-container">
-    <!-- 工具栏 -->
-    <div class="toolbar">
-      <div class="toolbar-left">
+    <!-- 查询条件 -->
+    <el-form :model="searchParams" ref="queryForm" size="small" :inline="true" v-show="showSearch">
+      <el-form-item label="文档名称" prop="docName">
         <el-input
           v-model="searchParams.docName"
-          placeholder="搜索文档名称..."
-          prefix-icon="el-icon-search"
+          placeholder="请输入文档名称"
           clearable
-          style="width: 240px; margin-right: 12px"
-          @clear="loadDocs"
-          @keyup.enter.native="loadDocs"
+          style="width: 240px"
+          @clear="handleSearch"
+          @keyup.enter.native="handleSearch"
         />
-        <el-select
-          v-model="searchParams.docType"
-          placeholder="文档类型"
-          clearable
-          style="width: 120px; margin-right: 12px"
-          @change="loadDocs"
-        >
+      </el-form-item>
+      <el-form-item label="文档类型" prop="docType">
+        <el-select v-model="searchParams.docType" placeholder="请选择文档类型" clearable style="width: 240px">
           <el-option label="Excel" value="excel" />
           <el-option label="Word" value="word" />
           <el-option label="Markdown" value="md" />
@@ -26,28 +21,30 @@
           <el-option label="TXT" value="txt" />
           <el-option label="PPT" value="ppt" />
         </el-select>
-        <el-select
-          v-model="searchParams.scene"
-          placeholder="使用场景"
-          clearable
-          style="width: 130px; margin-right: 12px"
-          @change="loadDocs"
-        >
+      </el-form-item>
+      <el-form-item label="使用场景" prop="scene">
+        <el-select v-model="searchParams.scene" placeholder="请选择使用场景" clearable style="width: 240px">
           <el-option label="归档文档" value="archive" />
           <el-option label="模板" value="template" />
         </el-select>
-        <el-button type="primary" icon="el-icon-search" @click="loadDocs">搜索</el-button>
-      </div>
-      <div class="toolbar-right">
-        <el-button type="primary" icon="el-icon-upload2" @click="uploadVisible = true">上传文档</el-button>
-        <el-button
-          type="danger"
-          icon="el-icon-delete"
-          :disabled="selectedIds.length === 0"
-          @click="handleBatchDelete"
-        >批量删除</el-button>
-      </div>
-    </div>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" icon="el-icon-search" size="mini" @click="handleSearch">搜索</el-button>
+        <el-button icon="el-icon-refresh" size="mini" @click="resetSearch">重置</el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-row :gutter="10" class="mb8">
+      <el-col :span="1.5">
+        <el-button type="primary" plain icon="el-icon-upload2" size="mini" @click="uploadVisible = true">上传文档</el-button>
+      </el-col>
+      <el-col :span="1.5">
+        <el-button type="danger" plain icon="el-icon-delete" size="mini" :disabled="selectedIds.length === 0" @click="handleBatchDelete">
+          批量删除
+        </el-button>
+      </el-col>
+      <right-toolbar :showSearch.sync="showSearch" @queryTable="loadDocs"></right-toolbar>
+    </el-row>
 
     <!-- 统计信息 -->
     <div class="stats">
@@ -61,7 +58,6 @@
     <el-table
       :data="docs"
       v-loading="loading"
-      border
       @selection-change="handleSelectionChange"
       style="width: 100%"
     >
@@ -116,19 +112,14 @@
     </el-table>
 
     <!-- 分页 -->
-    <div class="pagination">
-      <el-pagination
-        v-if="total > 0"
-        background
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total"
-        :current-page="searchParams.page"
-        :page-size="searchParams.limit"
-        :page-sizes="[20, 50, 100]"
-        @current-change="handlePageChange"
-        @size-change="handleSizeChange"
-      />
-    </div>
+    <pagination
+      v-show="total > 0"
+      :total="total"
+      :page.sync="searchParams.page"
+      :limit.sync="searchParams.limit"
+      :page-sizes="[20, 50, 100]"
+      @pagination="loadDocs"
+    />
 
     <!-- 上传文档弹窗 -->
     <share-doc-upload
@@ -212,6 +203,7 @@ export default {
         page: 1,
         limit: 20
       },
+      showSearch: true,
       // 文档列表
       docs: [],
       // 总数
@@ -263,6 +255,16 @@ export default {
       }
     },
     // 选择变化
+    handleSearch() {
+      this.searchParams.page = 1
+      this.loadDocs()
+    },
+    resetSearch() {
+      this.searchParams.docName = ''
+      this.searchParams.docType = ''
+      this.searchParams.scene = ''
+      this.handleSearch()
+    },
     handleSelectionChange(selection) {
       this.selectedIds = selection.map(item => item.id)
     },
