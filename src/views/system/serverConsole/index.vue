@@ -80,6 +80,10 @@
         <span class="summary-right">匹配 {{ totalMatched }} 条，显示最近 {{ logs.length }} 条</span>
       </div>
 
+      <el-alert v-if="logsError" class="log-alert" type="error" :title="logsError" show-icon :closable="false" />
+      <div v-else-if="logsLoading && !logs.length" class="log-state-hint">正在读取日志，请稍候…</div>
+      <div v-else-if="!logsLoading && !logs.length" class="log-state-hint">没有找到符合条件的日志，请清空关键字或切换日志来源。</div>
+
       <el-table :data="logs" v-loading="logsLoading" height="520" class="log-table" empty-text="暂无匹配日志">
         <el-table-column prop="timestamp" label="时间" width="190" />
         <el-table-column label="级别" width="90" align="center">
@@ -105,6 +109,8 @@ export default {
     return {
       overviewLoading: false,
       logsLoading: false,
+      logsError: '',
+      logsRequestId: 0,
       services: [],
       logFiles: [],
       logs: [],
@@ -151,15 +157,27 @@ export default {
       if (res.code === 200) this.logFiles = res.data.files || []
     },
     async loadLogs() {
+      const requestId = ++this.logsRequestId
       this.logsLoading = true
+      this.logsError = ''
       try {
         const res = await searchServerLogs(this.queryParams)
+        if (requestId !== this.logsRequestId) return
         if (res.code === 200) {
           this.logs = res.data.lines || []
           this.totalMatched = res.data.totalMatched || 0
+        } else {
+          this.logs = []
+          this.totalMatched = 0
+          this.logsError = res.msg || '日志读取失败，请稍后重试'
         }
+      } catch (error) {
+        if (requestId !== this.logsRequestId) return
+        this.logs = []
+        this.totalMatched = 0
+        this.logsError = error.message || '日志读取失败，请稍后重试'
       } finally {
-        this.logsLoading = false
+        if (requestId === this.logsRequestId) this.logsLoading = false
       }
     },
     handleServiceChange() {
@@ -227,6 +245,8 @@ export default {
 .query-form { padding-top: 4px; }
 .log-summary { margin: 4px 0 10px; color: #606266; font-size: 13px; }
 .summary-right { color: #909399; font-size: 12px; }
+.log-alert { margin: 4px 0 10px; }
+.log-state-hint { padding: 12px 16px; margin-bottom: 10px; color: #909399; font-size: 13px; background: #f8f9fb; border: 1px dashed #dcdfe6; border-radius: 4px; }
 .log-message { white-space: pre-wrap; word-break: break-all; font-family: Menlo, Monaco, Consolas, monospace; font-size: 12px; }
 .file-option-meta { float: right; color: #909399; font-size: 12px; }
 @media (max-width: 900px) { .service-cards { grid-template-columns: 1fr; } }
