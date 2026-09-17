@@ -23,6 +23,10 @@
             <div class="predict-label">预测下次经期</div>
             <div class="predict-value" v-if="predictedDate">{{ predictedDate }}</div>
             <div class="predict-value" v-else>暂无数据</div>
+            <div v-if="aiAnalysis && aiAnalysis.status === 'success'" class="ai-predict-mark">
+              <el-tag size="mini" type="success">AI 分析</el-tag>
+              <span>{{ formatAiDateTime(aiAnalysis.analyzedAt) }}</span>
+            </div>
           </div>
         </el-col>
         <el-col :span="6">
@@ -35,6 +39,10 @@
           </div>
         </el-col>
       </el-row>
+      <div class="ai-actions">
+        <el-button type="text" size="mini" :loading="aiRunning" @click="handleRunAiAnalysis" v-hasPermi="['reminder:period:list']">立即 AI 分析</el-button>
+        <el-button type="text" size="mini" :disabled="!aiAnalysis" @click="showAiAnalysis">查看分析过程</el-button>
+      </div>
     </el-card>
 
     <!-- 搜索表单 -->
@@ -185,11 +193,39 @@
         <el-button @click="cancel">取 消</el-button>
       </div>
     </el-dialog>
+
+    <el-dialog title="经期 AI 分析详情" :visible.sync="aiDialogVisible" width="760px" append-to-body>
+      <div v-if="aiAnalysis" class="ai-analysis-detail">
+        <div class="ai-analysis-meta">
+          <el-tag size="mini" :type="aiAnalysis.status === 'success' ? 'success' : 'danger'">{{ aiAnalysis.status === 'success' ? '分析成功' : '分析失败' }}</el-tag>
+          <span>分析时间：{{ formatAiDateTime(aiAnalysis.analyzedAt) }}</span>
+          <span>模型：{{ aiAnalysis.modelName || '-' }}</span>
+        </div>
+        <el-alert v-if="aiAnalysis.errorMessage" type="error" :title="aiAnalysis.errorMessage" :closable="false" show-icon />
+        <div class="ai-analysis-section">
+          <div class="ai-analysis-title">预测结果</div>
+          <div>预测下次经期：<strong>{{ formatAiDate(aiAnalysis.predictedNextDate) }}</strong></div>
+        </div>
+        <div class="ai-analysis-section">
+          <div class="ai-analysis-title">分析过程</div>
+          <pre>{{ aiAnalysis.analysisProcess || '暂无过程摘要' }}</pre>
+        </div>
+        <div class="ai-analysis-section">
+          <div class="ai-analysis-title">AI 回复</div>
+          <pre>{{ aiAnalysis.aiResponse || '暂无 AI 回复' }}</pre>
+        </div>
+        <div v-if="aiAnalysis.reasoningContent" class="ai-analysis-section">
+          <div class="ai-analysis-title">模型分析过程</div>
+          <pre>{{ aiAnalysis.reasoningContent }}</pre>
+        </div>
+      </div>
+      <div v-else class="ai-empty">暂无 AI 分析记录</div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { listPeriod, getPeriod, addPeriod, updatePeriod, delPeriod, getAverageCycle, getAverageDuration, predictNextPeriod } from "@/api/reminder/period";
+import { listPeriod, getPeriod, addPeriod, updatePeriod, delPeriod, getAverageCycle, getAverageDuration, predictNextPeriod, getLatestAiAnalysis, runAiAnalysis } from "@/api/reminder/period";
 
 export default {
   name: "PeriodRecord",
@@ -218,6 +254,9 @@ export default {
       averageDuration: 5,
       predictedDate: null,
       daysUntilNext: null,
+      aiAnalysis: null,
+      aiDialogVisible: false,
+      aiRunning: false,
       // 查询参数
       queryParams: {
         pageNum: 1,
@@ -271,6 +310,41 @@ export default {
           this.daysUntilNext = Math.ceil(diff / (1000 * 60 * 60 * 24));
         }
       });
+      getLatestAiAnalysis().then(response => {
+        this.aiAnalysis = response.data || null;
+        if (this.aiAnalysis && this.aiAnalysis.status === 'success' && this.aiAnalysis.predictedNextDate) {
+          this.applyPredictedDate(this.aiAnalysis.predictedNextDate);
+        }
+      });
+    },
+    applyPredictedDate(value) {
+      this.predictedDate = this.parseTime(value, '{y}-{m}-{d}');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const predictDate = new Date(value);
+      predictDate.setHours(0, 0, 0, 0);
+      this.daysUntilNext = Math.ceil((predictDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    },
+    handleRunAiAnalysis() {
+      this.aiRunning = true;
+      runAiAnalysis().then(response => {
+        this.aiAnalysis = response.data || null;
+        if (this.aiAnalysis && this.aiAnalysis.status === 'success' && this.aiAnalysis.predictedNextDate) {
+          this.applyPredictedDate(this.aiAnalysis.predictedNextDate);
+        }
+        this.$modal.msgSuccess(this.aiAnalysis && this.aiAnalysis.status === 'success' ? 'AI 分析完成' : 'AI 分析未完成');
+      }).finally(() => {
+        this.aiRunning = false;
+      });
+    },
+    showAiAnalysis() {
+      this.aiDialogVisible = true;
+    },
+    formatAiDate(value) {
+      return value ? this.parseTime(value, '{y}-{m}-{d}') : '-';
+    },
+    formatAiDateTime(value) {
+      return value ? this.parseTime(value, '{y}-{m}-{d} {h}:{i}') : '-';
     },
     // 取消按钮
     cancel() {
@@ -379,6 +453,57 @@ export default {
   color: #ff6b9d;
   font-size: 20px;
   font-weight: bold;
+}
+.ai-predict-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 5px;
+  color: #909399;
+  font-size: 11px;
+  font-weight: normal;
+}
+.ai-actions {
+  padding-top: 6px;
+  text-align: right;
+  border-top: 1px solid #f0f2f5;
+}
+.ai-analysis-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  color: #606266;
+  font-size: 13px;
+}
+.ai-analysis-section {
+  margin-top: 16px;
+}
+.ai-analysis-title {
+  padding-left: 8px;
+  margin-bottom: 8px;
+  color: #303133;
+  font-weight: 600;
+  border-left: 2px solid #ff6b9d;
+}
+.ai-analysis-section pre {
+  padding: 12px 14px;
+  margin: 0;
+  color: #606266;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.7;
+  background: #fafafa;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+.ai-empty {
+  padding: 30px 0;
+  color: #909399;
+  text-align: center;
 }
 .text-danger {
   color: #f56c6c;

@@ -57,6 +57,31 @@ export function predictNextPeriodEnd() {
   })
 }
 
+// 获取最近一次经期 AI 分析
+export function getLatestAiAnalysis() {
+  return request({
+    url: '/reminder/period/ai/latest',
+    method: 'get'
+  })
+}
+
+// 获取经期 AI 分析历史
+export function listAiAnalysis(limit = 20) {
+  return request({
+    url: '/reminder/period/ai/list',
+    method: 'get',
+    params: { limit }
+  })
+}
+
+// 立即执行一次经期 AI 分析
+export function runAiAnalysis() {
+  return request({
+    url: '/reminder/period/ai/run',
+    method: 'post'
+  })
+}
+
 // 新增经期记录
 export function addPeriod(data) {
   return request({
