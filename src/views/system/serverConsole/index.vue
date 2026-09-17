@@ -27,7 +27,7 @@
       <div slot="header" class="log-card-header">
         <div>
           <span class="card-title">日志查询</span>
-          <span class="card-hint">只读查看，不会修改服务器日志</span>
+          <span class="card-hint">全量搜索，展示最新 200 条 · 只读查看，不会修改服务器日志</span>
         </div>
         <el-switch v-model="autoRefresh" active-text="自动刷新（10秒）" @change="handleAutoRefresh" />
       </div>
