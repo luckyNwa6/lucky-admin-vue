@@ -28,6 +28,25 @@
       </div>
     </div>
 
+    <div class="section-label">依赖健康</div>
+    <div class="service-cards dependency-cards" v-loading="overviewLoading">
+      <div v-for="dependency in dependencies" :key="dependency.key" class="service-card" :class="dependency.healthy ? 'is-online' : 'is-offline'">
+        <div class="service-card-header">
+          <div>
+            <span class="service-name">{{ dependency.name }}</span>
+            <el-tag size="mini" :type="dependency.healthy ? 'success' : 'danger'">
+              {{ dependency.healthy ? '正常' : '异常' }}
+            </el-tag>
+          </div>
+          <i :class="dependency.key === 'redis' ? 'el-icon-connection' : 'el-icon-coin'" class="service-icon"></i>
+        </div>
+        <div class="service-meta">
+          <span>{{ dependency.message }}</span>
+          <span>响应 {{ dependency.latencyMs == null ? '-' : `${dependency.latencyMs} ms` }}</span>
+        </div>
+      </div>
+    </div>
+
     <el-card shadow="never" class="log-card">
       <div slot="header" class="log-card-header">
         <div>
@@ -126,6 +145,7 @@ export default {
       logsError: '',
       logsRequestId: 0,
       services: [],
+      dependencies: [],
       logFiles: [],
       logs: [],
       totalMatched: 0,
@@ -164,7 +184,10 @@ export default {
       this.overviewLoading = true
       try {
         const res = await getServerOverview()
-        if (res.code === 200) this.services = res.data.services || []
+        if (res.code === 200) {
+          this.services = res.data.services || []
+          this.dependencies = res.data.dependencies || []
+        }
       } finally {
         this.overviewLoading = false
       }
@@ -258,7 +281,9 @@ export default {
 .page-title { color: #303133; font-size: 20px; font-weight: 600; }
 .page-description, .card-hint { color: #909399; font-size: 12px; }
 .page-description { margin-top: 6px; }
+.section-label { margin: 4px 0 6px; color: #606266; font-size: 13px; font-weight: 600; }
 .service-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+.dependency-cards { margin-bottom: 12px; }
 .service-card { padding: 11px 14px; border: 1px solid #ebeef5; border-left: 3px solid #67c23a; border-radius: 4px; background: #fff; }
 .service-card.is-offline { border-left-color: #f56c6c; }
 .service-name { margin-right: 8px; color: #303133; font-size: 15px; font-weight: 600; }
