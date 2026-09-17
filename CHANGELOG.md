@@ -1,3 +1,11 @@
+## 2026-09-17 — 新增云服务器服务日志控制台
+
+- 需求：在系统管理下可视化查看云服务器上的 Lucky Admin、Lucky RAG 运行状态和日志，并支持日志搜索。
+- 修改：新增 `src/views/system/serverConsole/index.vue`、`src/api/system/serverConsole.js`；新增 Java `ServerConsoleController` / `ServerConsoleService`，只读读取预定义的 Admin/RAG 进程状态、健康检查和日志；新增 `java/lucky-admin-api/sql/server_console_menu.sql` 菜单脚本。
+- 联动：新增权限 `system:serverConsole:list`；日志路径使用服务器标准路径 `/nwa/wagon/running.log`、`/nwa/wagon/rag/backend/app.log` 和 RAG `logs/` 目录；不提供重启、删除或清空日志操作。
+- 验证：待执行前后端构建、菜单 SQL 执行和 CI/CD；服务器只读状态检查已确认 Lucky API 10086 返回 302、Lucky RAG 18000 返回 200。
+- 未完成：需要执行菜单 SQL 后，用管理员账号验证菜单权限和线上日志查询。
+
 ## 2026-09-17 — 重构文件治理页面信息层级
 
 - 需求：文件治理页面当前信息难以理解，需要明确扫描结果、治理状态和删除边界。
