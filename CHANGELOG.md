@@ -129,3 +129,10 @@
 - 联动：调用 Admin `/ai/agent/market` 接口，文件上传进入 S3/R2；市场安装量由 RAG 用户安装接口维护。
 - 验证：Admin `npm run build:prod` 仍被项目既有 `optimize-cssnano-plugin` CSS 压缩错误阻断，未发现本次新增页面的 Vue 编译错误。
 - 未完成：执行菜单 SQL 后，用管理员账号验证页面权限和 S3 上传。
+## 2026-09-19 — 增加用户 MCP 分类管理视图
+
+- 需求：Admin 后台可按“开源 / 个人”查看用户 MCP 配置。
+- 修改：`src/views/chat/agentMarket/index.vue` 增加“用户 MCP”页签、关键词/分类筛选、用户/地址/状态/更新时间列表；`src/api/ai/agentMarket.js` 增加查询接口。
+- 联动：复用扩展市场页面和 `ai:agent:market:list` 权限；用户侧删除规则不变，市场 MCP 仍只删除用户引用。
+- 验证：`npm run build:prod`、`git diff --check` 通过（仅有既有 Browserslist 和资源体积提示）。
+- 未完成：无。

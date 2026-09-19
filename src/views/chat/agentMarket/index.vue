@@ -1,5 +1,10 @@
 <template>
   <div class="app-container">
+    <el-tabs v-model="activeTab" @tab-click="handleTabChange">
+      <el-tab-pane label="市场资源" name="market" />
+      <el-tab-pane label="用户 MCP" name="userMcp" />
+    </el-tabs>
+    <div v-show="activeTab === 'market'">
     <el-form :inline="true" size="small" :model="queryParams">
       <el-form-item label="名称"><el-input v-model="queryParams.displayName" clearable placeholder="名称" @keyup.enter.native="getList" /></el-form-item>
       <el-form-item label="类型"><el-select v-model="queryParams.assetType" clearable placeholder="全部"><el-option label="Skill" value="skill" /><el-option label="MCP" value="mcp" /><el-option label="Plugin" value="plugin" /></el-select></el-form-item>
@@ -16,6 +21,23 @@
       <el-table-column label="操作" width="140"><template slot-scope="scope"><el-button type="text" size="mini" @click="openEdit(scope.row)">编辑</el-button><el-button type="text" size="mini" class="text-danger" @click="remove(scope.row)">删除</el-button></template></el-table-column>
     </el-table>
     <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
+    </div>
+    <div v-show="activeTab === 'userMcp'">
+      <el-form :inline="true" size="small" :model="userMcpQuery">
+        <el-form-item label="名称/用户"><el-input v-model="userMcpQuery.keyword" clearable placeholder="名称或用户" @keyup.enter.native="getUserMcpList" /></el-form-item>
+        <el-form-item label="分类"><el-select v-model="userMcpQuery.sourceType" clearable placeholder="全部"><el-option label="开源" value="open_source" /><el-option label="个人" value="personal" /></el-select></el-form-item>
+        <el-form-item><el-button type="primary" icon="el-icon-search" size="mini" @click="getUserMcpList">搜索</el-button><el-button size="mini" @click="resetUserMcp">重置</el-button></el-form-item>
+      </el-form>
+      <el-table v-loading="userMcpLoading" :data="userMcpList">
+        <el-table-column label="名称" prop="display_name" min-width="180" />
+        <el-table-column label="分类" width="100"><template slot-scope="scope"><el-tag :type="scope.row.source_type === 'open_source' ? 'success' : 'info'">{{ scope.row.source_label }}</el-tag></template></el-table-column>
+        <el-table-column label="用户" prop="owner_name" width="150" />
+        <el-table-column label="地址" prop="endpoint" min-width="260" show-overflow-tooltip />
+        <el-table-column label="状态" width="90"><template slot-scope="scope"><el-tag :type="scope.row.enabled ? 'success' : 'info'">{{ scope.row.enabled ? '启用' : '停用' }}</el-tag></template></el-table-column>
+        <el-table-column label="更新时间" prop="updated_at" width="170" />
+      </el-table>
+      <pagination v-show="userMcpTotal > 0" :total="userMcpTotal" :page.sync="userMcpQuery.pageNum" :limit.sync="userMcpQuery.pageSize" @pagination="getUserMcpList" />
+    </div>
     <el-dialog :title="form.id ? '编辑市场资源' : '新增市场资源'" :visible.sync="dialogVisible" width="620px">
       <el-form ref="form" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="资源 ID" prop="id"><el-input v-model="form.id" :disabled="Boolean(form.id)" placeholder="如 ppt-creator" /></el-form-item>
@@ -32,13 +54,16 @@
 </template>
 
 <script>
-import { listAgentMarket, saveAgentMarket, deleteAgentMarket, uploadAgentMarket } from '@/api/ai/agentMarket'
+import { listAgentMarket, listAgentUserMcp, saveAgentMarket, deleteAgentMarket, uploadAgentMarket } from '@/api/ai/agentMarket'
 export default {
   name: 'AgentMarket',
-  data() { return { loading: false, saving: false, showSearch: true, list: [], total: 0, dialogVisible: false, selectedFile: null, queryParams: { pageNum: 1, pageSize: 20, displayName: undefined, assetType: undefined }, form: {}, rules: { id: [{ required: true, message: '请输入资源 ID', trigger: 'blur' }], assetType: [{ required: true, message: '请选择类型', trigger: 'change' }], displayName: [{ required: true, message: '请输入名称', trigger: 'blur' }] } } },
+  data() { return { activeTab: 'market', loading: false, userMcpLoading: false, saving: false, showSearch: true, list: [], total: 0, userMcpList: [], userMcpTotal: 0, dialogVisible: false, selectedFile: null, queryParams: { pageNum: 1, pageSize: 20, displayName: undefined, assetType: undefined }, userMcpQuery: { pageNum: 1, pageSize: 20, keyword: undefined, sourceType: undefined }, form: {}, rules: { id: [{ required: true, message: '请输入资源 ID', trigger: 'blur' }], assetType: [{ required: true, message: '请选择类型', trigger: 'change' }], displayName: [{ required: true, message: '请输入名称', trigger: 'blur' }] } } },
   created() { this.getList() },
   methods: {
     getList() { this.loading = true; listAgentMarket(this.queryParams).then(res => { this.list = res.rows || []; this.total = res.total || 0 }).finally(() => { this.loading = false }) },
+    getUserMcpList() { this.userMcpLoading = true; listAgentUserMcp(this.userMcpQuery).then(res => { this.userMcpList = res.rows || []; this.userMcpTotal = res.total || 0 }).finally(() => { this.userMcpLoading = false }) },
+    handleTabChange(tab) { if (tab.name === 'userMcp' && !this.userMcpList.length) this.getUserMcpList() },
+    resetUserMcp() { this.userMcpQuery.pageNum = 1; this.userMcpQuery.keyword = undefined; this.userMcpQuery.sourceType = undefined; this.getUserMcpList() },
     reset() { this.queryParams.pageNum = 1; this.queryParams.displayName = undefined; this.queryParams.assetType = undefined; this.getList() },
     openAdd() { this.form = { assetType: 'skill', version: '1.0.0', enabled: 1 }; this.selectedFile = null; this.dialogVisible = true },
     openEdit(row) { this.form = { ...row }; this.selectedFile = null; this.dialogVisible = true },
