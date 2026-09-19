@@ -92,8 +92,6 @@ const user = {
             const avatar =
               user.avatar == '' || user.avatar == null
                 ? require('@/assets/images/avatar.gif')
-                : process.env.NODE_ENV === 'production'
-                ? process.env.VUE_APP_BASE_API + user.avatar
                 : process.env.VUE_APP_IMG_API + user.avatar
             if (res.roles && res.roles.length > 0) {
               // 验证返回的roles是否是一个非空数组
