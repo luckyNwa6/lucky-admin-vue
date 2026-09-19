@@ -39,11 +39,9 @@
       </el-table>
       <pagination v-show="userMcpTotal > 0" :total="userMcpTotal" :page.sync="userMcpQuery.pageNum" :limit.sync="userMcpQuery.pageSize" @pagination="getUserMcpList" />
     </div>
-    <el-dialog title="编辑用户 MCP" :visible.sync="userMcpDialogVisible" width="560px">
+    <el-dialog title="编辑 MCP JSON" :visible.sync="userMcpDialogVisible" width="760px">
       <el-form :model="userMcpForm" label-width="90px">
-        <el-form-item label="名称"><el-input v-model="userMcpForm.display_name" maxlength="128" /></el-form-item>
-        <el-form-item label="描述"><el-input v-model="userMcpForm.description" type="textarea" :rows="3" maxlength="512" /></el-form-item>
-        <el-form-item label="Endpoint"><el-input v-model="userMcpForm.endpoint" placeholder="https://example.com/mcp" /></el-form-item>
+        <el-form-item label="MCP JSON"><el-input v-model="userMcpForm.json" type="textarea" :rows="18" spellcheck="false" placeholder="请输入 mcpServers JSON 配置" /></el-form-item>
         <el-form-item label="状态"><el-switch v-model="userMcpForm.enabled" /></el-form-item>
       </el-form>
       <span slot="footer"><el-button @click="userMcpDialogVisible = false">取消</el-button><el-button type="primary" :loading="userMcpSaving" @click="saveUserMcp">保存</el-button></span>
@@ -64,7 +62,7 @@
 </template>
 
 <script>
-import { listAgentMarket, listAgentUserMcp, updateAgentUserMcp, deleteAgentUserMcp, saveAgentMarket, deleteAgentMarket, uploadAgentMarket } from '@/api/ai/agentMarket'
+import { listAgentMarket, listAgentUserMcp, getAgentUserMcp, updateAgentUserMcp, deleteAgentUserMcp, saveAgentMarket, deleteAgentMarket, uploadAgentMarket } from '@/api/ai/agentMarket'
 export default {
   name: 'AgentMarket',
   data() { return { activeTab: 'market', loading: false, userMcpLoading: false, saving: false, userMcpSaving: false, userMcpDialogVisible: false, showSearch: true, list: [], total: 0, userMcpList: [], userMcpTotal: 0, dialogVisible: false, selectedFile: null, userMcpForm: {}, queryParams: { pageNum: 1, pageSize: 20, displayName: undefined, assetType: undefined }, userMcpQuery: { pageNum: 1, pageSize: 20, keyword: undefined, sourceType: undefined }, form: {}, rules: { id: [{ required: true, message: '请输入资源 ID', trigger: 'blur' }], assetType: [{ required: true, message: '请选择类型', trigger: 'change' }], displayName: [{ required: true, message: '请输入显示名称', trigger: 'blur' }] } } },
@@ -72,8 +70,8 @@ export default {
   methods: {
     getList() { this.loading = true; listAgentMarket(this.queryParams).then(res => { this.list = res.rows || []; this.total = res.total || 0 }).finally(() => { this.loading = false }) },
     getUserMcpList() { this.userMcpLoading = true; listAgentUserMcp(this.userMcpQuery).then(res => { this.userMcpList = res.rows || []; this.userMcpTotal = res.total || 0 }).finally(() => { this.userMcpLoading = false }) },
-    openUserMcpEdit(row) { this.userMcpForm = { id: row.id, display_name: row.display_name, description: row.description, endpoint: row.endpoint, enabled: Boolean(row.enabled) }; this.userMcpDialogVisible = true },
-    saveUserMcp() { this.userMcpSaving = true; updateAgentUserMcp(this.userMcpForm.id, this.userMcpForm).then(() => { this.$modal.msgSuccess('用户 MCP 已更新'); this.userMcpDialogVisible = false; this.getUserMcpList() }).finally(() => { this.userMcpSaving = false }) },
+    async openUserMcpEdit(row) { this.userMcpSaving = true; try { const detail = await getAgentUserMcp(row.id); this.userMcpForm = { id: row.id, json: JSON.stringify(detail.config || {}, null, 2), enabled: Boolean(detail.enabled) }; this.userMcpDialogVisible = true } finally { this.userMcpSaving = false } },
+    saveUserMcp() { let config; try { config = JSON.parse(this.userMcpForm.json) } catch (e) { this.$modal.msgError('MCP JSON 格式不正确'); return } this.userMcpSaving = true; updateAgentUserMcp(this.userMcpForm.id, { config, enabled: this.userMcpForm.enabled }).then(() => { this.$modal.msgSuccess('用户 MCP 已更新'); this.userMcpDialogVisible = false; this.getUserMcpList() }).finally(() => { this.userMcpSaving = false }) },
     removeUserMcp(row) { this.$modal.confirm(`确认删除用户“${row.owner_name}”的 MCP“${row.display_name}”吗？删除只影响该用户配置，不影响市场资源。`).then(() => deleteAgentUserMcp(row.id)).then(() => { this.$modal.msgSuccess('用户 MCP 已删除'); this.getUserMcpList() }) },
     handleTabChange(tab) { if (tab.name === 'userMcp' && !this.userMcpList.length) this.getUserMcpList() },
     resetUserMcp() { this.userMcpQuery.pageNum = 1; this.userMcpQuery.keyword = undefined; this.userMcpQuery.sourceType = undefined; this.getUserMcpList() },

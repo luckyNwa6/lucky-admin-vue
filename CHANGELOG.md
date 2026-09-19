@@ -1,3 +1,11 @@
+## 2026-09-19 — 用户 MCP 编辑改为 JSON 编辑器
+
+- 需求：用户 MCP 编辑应直接修改标准 `mcpServers` JSON 配置。
+- 修改：`src/views/chat/agentMarket/index.vue` 将编辑弹框改为大文本 JSON 编辑器，保存前执行 JSON 格式校验；新增读取用户 MCP JSON 的 API 方法。
+- 联动：支持保持启用状态；后端对 Token、API Key 等敏感字段脱敏展示并在未修改时保留原值。
+- 验证：`npm run build:prod` 成功；仅有既有资源体积和 Browserslist 提示；`git diff --check` 通过。
+- 未完成：尚未重新 CI/CD 部署。
+
 ## 2026-09-19 — 统一头像静态资源地址配置
 
 - 需求：修复生产环境登录后用户头像因走 `/proxyApi` 接口代理而无法加载的问题。
