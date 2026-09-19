@@ -35,9 +35,19 @@
         <el-table-column label="地址" prop="endpoint" min-width="260" show-overflow-tooltip />
         <el-table-column label="状态" width="90"><template slot-scope="scope"><el-tag :type="scope.row.enabled ? 'success' : 'info'">{{ scope.row.enabled ? '启用' : '停用' }}</el-tag></template></el-table-column>
         <el-table-column label="更新时间" prop="updated_at" width="170" />
+        <el-table-column label="操作" width="130"><template slot-scope="scope"><el-button type="text" size="mini" @click="openUserMcpEdit(scope.row)">编辑</el-button><el-button type="text" size="mini" class="text-danger" @click="removeUserMcp(scope.row)">删除</el-button></template></el-table-column>
       </el-table>
       <pagination v-show="userMcpTotal > 0" :total="userMcpTotal" :page.sync="userMcpQuery.pageNum" :limit.sync="userMcpQuery.pageSize" @pagination="getUserMcpList" />
     </div>
+    <el-dialog title="编辑用户 MCP" :visible.sync="userMcpDialogVisible" width="560px">
+      <el-form :model="userMcpForm" label-width="90px">
+        <el-form-item label="名称"><el-input v-model="userMcpForm.display_name" maxlength="128" /></el-form-item>
+        <el-form-item label="描述"><el-input v-model="userMcpForm.description" type="textarea" :rows="3" maxlength="512" /></el-form-item>
+        <el-form-item label="Endpoint"><el-input v-model="userMcpForm.endpoint" placeholder="https://example.com/mcp" /></el-form-item>
+        <el-form-item label="状态"><el-switch v-model="userMcpForm.enabled" /></el-form-item>
+      </el-form>
+      <span slot="footer"><el-button @click="userMcpDialogVisible = false">取消</el-button><el-button type="primary" :loading="userMcpSaving" @click="saveUserMcp">保存</el-button></span>
+    </el-dialog>
     <el-dialog :title="form.id ? '编辑市场资源' : '新增市场资源'" :visible.sync="dialogVisible" width="620px">
       <el-form ref="form" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="资源 ID" prop="id"><el-input v-model="form.id" :disabled="Boolean(form.id)" placeholder="如 ppt-creator" /></el-form-item>
@@ -54,14 +64,17 @@
 </template>
 
 <script>
-import { listAgentMarket, listAgentUserMcp, saveAgentMarket, deleteAgentMarket, uploadAgentMarket } from '@/api/ai/agentMarket'
+import { listAgentMarket, listAgentUserMcp, updateAgentUserMcp, deleteAgentUserMcp, saveAgentMarket, deleteAgentMarket, uploadAgentMarket } from '@/api/ai/agentMarket'
 export default {
   name: 'AgentMarket',
-  data() { return { activeTab: 'market', loading: false, userMcpLoading: false, saving: false, showSearch: true, list: [], total: 0, userMcpList: [], userMcpTotal: 0, dialogVisible: false, selectedFile: null, queryParams: { pageNum: 1, pageSize: 20, displayName: undefined, assetType: undefined }, userMcpQuery: { pageNum: 1, pageSize: 20, keyword: undefined, sourceType: undefined }, form: {}, rules: { id: [{ required: true, message: '请输入资源 ID', trigger: 'blur' }], assetType: [{ required: true, message: '请选择类型', trigger: 'change' }], displayName: [{ required: true, message: '请输入名称', trigger: 'blur' }] } } },
+  data() { return { activeTab: 'market', loading: false, userMcpLoading: false, saving: false, userMcpSaving: false, userMcpDialogVisible: false, showSearch: true, list: [], total: 0, userMcpList: [], userMcpTotal: 0, dialogVisible: false, selectedFile: null, userMcpForm: {}, queryParams: { pageNum: 1, pageSize: 20, displayName: undefined, assetType: undefined }, userMcpQuery: { pageNum: 1, pageSize: 20, keyword: undefined, sourceType: undefined }, form: {}, rules: { id: [{ required: true, message: '请输入资源 ID', trigger: 'blur' }], assetType: [{ required: true, message: '请选择类型', trigger: 'change' }], displayName: [{ required: true, message: '请输入显示名称', trigger: 'blur' }] } } },
   created() { this.getList() },
   methods: {
     getList() { this.loading = true; listAgentMarket(this.queryParams).then(res => { this.list = res.rows || []; this.total = res.total || 0 }).finally(() => { this.loading = false }) },
     getUserMcpList() { this.userMcpLoading = true; listAgentUserMcp(this.userMcpQuery).then(res => { this.userMcpList = res.rows || []; this.userMcpTotal = res.total || 0 }).finally(() => { this.userMcpLoading = false }) },
+    openUserMcpEdit(row) { this.userMcpForm = { id: row.id, display_name: row.display_name, description: row.description, endpoint: row.endpoint, enabled: Boolean(row.enabled) }; this.userMcpDialogVisible = true },
+    saveUserMcp() { this.userMcpSaving = true; updateAgentUserMcp(this.userMcpForm.id, this.userMcpForm).then(() => { this.$modal.msgSuccess('用户 MCP 已更新'); this.userMcpDialogVisible = false; this.getUserMcpList() }).finally(() => { this.userMcpSaving = false }) },
+    removeUserMcp(row) { this.$modal.confirm(`确认删除用户“${row.owner_name}”的 MCP“${row.display_name}”吗？删除只影响该用户配置，不影响市场资源。`).then(() => deleteAgentUserMcp(row.id)).then(() => { this.$modal.msgSuccess('用户 MCP 已删除'); this.getUserMcpList() }) },
     handleTabChange(tab) { if (tab.name === 'userMcp' && !this.userMcpList.length) this.getUserMcpList() },
     resetUserMcp() { this.userMcpQuery.pageNum = 1; this.userMcpQuery.keyword = undefined; this.userMcpQuery.sourceType = undefined; this.getUserMcpList() },
     reset() { this.queryParams.pageNum = 1; this.queryParams.displayName = undefined; this.queryParams.assetType = undefined; this.getList() },

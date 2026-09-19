@@ -136,3 +136,10 @@
 - 联动：复用扩展市场页面和 `ai:agent:market:list` 权限；用户侧删除规则不变，市场 MCP 仍只删除用户引用。
 - 验证：`npm run build:prod`、`git diff --check` 通过（仅有既有 Browserslist 和资源体积提示）。
 - 未完成：无。
+## 2026-09-19 — 用户 MCP 管理增加编辑与删除操作
+
+- 需求：Admin 后台“用户 MCP”列表不能编辑或删除。
+- 修改：`src/views/chat/agentMarket/index.vue` 增加操作列和编辑弹框；`src/api/ai/agentMarket.js` 增加用户 MCP 编辑/删除请求。
+- 联动：编辑支持名称、描述、Endpoint、启用状态；删除提示明确只影响用户配置，不影响市场资源。
+- 验证：`npm run build:prod`、`git diff --check` 通过；仅有既有资源体积和 Browserslist 提示。
+- 未完成：无。
