@@ -122,3 +122,10 @@
 - 联动：对接 Admin `/ai/chat/quota/users`、`/ai/chat/quota/user/{username}` 和 `/ai/chat/quota/provision`。
 - 验证：目标代码已完成 diff 检查；`npm run build:prod` 仍被项目既有 `optimize-cssnano-plugin` CSS 压缩错误阻断。
 - 未完成：需在 CI/线上确认页面构建和权限菜单。
+## 2026-09-19 — 增加 Agent 扩展市场管理页
+
+- 需求：Admin 后台增加 Skill、MCP、Plugin 市场管理，支持元数据维护和资源文件上传。
+- 修改：新增 `src/views/chat/agentMarket/index.vue`、`src/api/ai/agentMarket.js`；新增 `sql/agent_market_menu.sql` 菜单和权限脚本。
+- 联动：调用 Admin `/ai/agent/market` 接口，文件上传进入 S3/R2；市场安装量由 RAG 用户安装接口维护。
+- 验证：Admin `npm run build:prod` 仍被项目既有 `optimize-cssnano-plugin` CSS 压缩错误阻断，未发现本次新增页面的 Vue 编译错误。
+- 未完成：执行菜单 SQL 后，用管理员账号验证页面权限和 S3 上传。
