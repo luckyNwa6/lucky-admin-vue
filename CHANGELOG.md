@@ -115,3 +115,10 @@
 - 联动：AI 预测结果优先标注到预测日期，失败时保留原有系统计算结果。
 - 验证：待执行前端检查、CI/CD 与线上真实模型调用。
 - 未完成：无。
+## 2026-09-19 — 优化配额管理支持用户额度与 RPS
+
+- 需求：Admin 后台按用户配置每日额度和 RPS，并保留角色默认配额视图。
+- 修改：`src/views/chat/quota/index.vue` 增加用户配额表、额度/RPS 编辑、今日重置和新用户配额补齐；`src/api/chat/index.js` 增加对应接口。
+- 联动：对接 Admin `/ai/chat/quota/users`、`/ai/chat/quota/user/{username}` 和 `/ai/chat/quota/provision`。
+- 验证：目标代码已完成 diff 检查；`npm run build:prod` 仍被项目既有 `optimize-cssnano-plugin` CSS 压缩错误阻断。
+- 未完成：需在 CI/线上确认页面构建和权限菜单。

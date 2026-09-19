@@ -267,6 +267,36 @@ export function resetRoleQuota(roleKey) {
   })
 }
 
+export function listUserQuota(query) {
+  return request({
+    url: '/ai/chat/quota/users',
+    method: 'get',
+    params: query
+  })
+}
+
+export function updateUserQuota(username, data) {
+  return request({
+    url: '/ai/chat/quota/user/' + encodeURIComponent(username),
+    method: 'put',
+    data: data
+  })
+}
+
+export function resetUserQuota(username) {
+  return request({
+    url: '/ai/chat/quota/user/' + encodeURIComponent(username) + '/reset',
+    method: 'post'
+  })
+}
+
+export function provisionUserQuota() {
+  return request({
+    url: '/ai/chat/quota/provision',
+    method: 'post'
+  })
+}
+
 // ==================== 会话历史 ====================
 
 export function listSession(chatType, query) {
