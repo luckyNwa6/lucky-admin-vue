@@ -172,3 +172,9 @@
 - 联动：配合 Admin 后端更新接口和 `rag_model_config.name` 可空迁移；模型 ID 仍为必填。
 - 验证：`npx eslint src/views/chat/model/index.vue --no-ignore` 通过（0 errors、11 条既有样式 warnings）；`git diff --check` 通过。`npm run build:prod` 受现有 CSS minifier 报错 `Cannot read properties of undefined (reading 'bind')` 阻断，与本次 Vue 文件无关。
 - 未完成：数据库迁移需在目标数据库执行；前端完整生产构建仍受现有 CSS minifier 环境问题阻断。
+## 2026-09-28 — 管理员市场操作按钮权限收紧
+
+- 需求：非管理员/无对应权限角色不可看到市场编辑、删除及用户资源编辑删除按钮。
+- 修改：市场资源行操作和用户 MCP 操作补充 `v-hasPermi`，与新增、批量删除按钮保持一致；后端接口原有 `@PreAuthorize` 继续生效。
+- 验证：待 Admin 前端构建及 `git diff --check`。
+- 未完成：无。

@@ -19,7 +19,7 @@
       <el-table-column label="版本" prop="version" width="100" />
       <el-table-column label="安装量" prop="installCount" width="100" />
       <el-table-column label="状态" width="90"><template slot-scope="scope"><el-switch v-model="scope.row.enabled" :active-value="1" :inactive-value="0" @change="save(scope.row)" /></template></el-table-column>
-      <el-table-column label="操作" width="140"><template slot-scope="scope"><el-button type="text" size="mini" @click="openEdit(scope.row)">编辑</el-button><el-button type="text" size="mini" class="text-danger" @click="remove(scope.row)">删除</el-button></template></el-table-column>
+      <el-table-column label="操作" width="140"><template slot-scope="scope"><el-button v-hasPermi="['ai:agent:market:edit']" type="text" size="mini" @click="openEdit(scope.row)">编辑</el-button><el-button v-hasPermi="['ai:agent:market:remove']" type="text" size="mini" class="text-danger" @click="remove(scope.row)">删除</el-button></template></el-table-column>
     </el-table>
     <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize" @pagination="getList" />
     </div>
@@ -38,7 +38,7 @@
         <el-table-column label="地址" prop="endpoint" min-width="260" show-overflow-tooltip />
         <el-table-column label="状态" width="90"><template slot-scope="scope"><el-tag :type="scope.row.enabled ? 'success' : 'info'">{{ scope.row.enabled ? '启用' : '停用' }}</el-tag></template></el-table-column>
         <el-table-column label="更新时间" prop="updated_at" width="170" />
-        <el-table-column label="操作" width="130"><template slot-scope="scope"><template v-if="scope.row.resource_type === 'mcp'"><el-button type="text" size="mini" @click="openUserMcpEdit(scope.row)">编辑 JSON</el-button><el-button type="text" size="mini" class="text-danger" @click="removeUserMcp(scope.row)">删除</el-button></template><span v-else class="muted">只读</span></template></el-table-column>
+      <el-table-column label="操作" width="130"><template slot-scope="scope"><template v-if="scope.row.resource_type === 'mcp'"><el-button v-hasPermi="['ai:agent:market:edit']" type="text" size="mini" @click="openUserMcpEdit(scope.row)">编辑 JSON</el-button><el-button v-hasPermi="['ai:agent:market:remove']" type="text" size="mini" class="text-danger" @click="removeUserMcp(scope.row)">删除</el-button></template><span v-else class="muted">只读</span></template></el-table-column>
       </el-table>
       <pagination v-show="userResourceTotal > 0" :total="userResourceTotal" :page.sync="userResourceQuery.pageNum" :limit.sync="userResourceQuery.pageSize" @pagination="getUserResourceList" />
     </div>
