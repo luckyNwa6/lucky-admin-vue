@@ -142,12 +142,12 @@
           <el-row :gutter="24">
             <el-col :span="12">
               <el-form-item label="模型ID" prop="modelId">
-                <el-input v-model="form.modelId" placeholder="请输入模型ID" @blur="fillModelAlias" />
+                <el-input v-model="form.modelId" placeholder="请输入模型ID" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="模型别名" prop="name">
-                <el-input v-model="form.name" placeholder="不填则默认使用模型ID" />
+                <el-input v-model="form.name" placeholder="可选，不填则不设置别名" clearable />
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -457,11 +457,6 @@ export default {
         this.form.visionOcrEnabled = false
       }
     },
-    fillModelAlias() {
-      if (!String(this.form.name || '').trim() && String(this.form.modelId || '').trim()) {
-        this.form.name = String(this.form.modelId).trim()
-      }
-    },
     syncPlatformFromApiKey() {
       const key = (this.apiKeyOptions || []).find(item => item.id === this.form.apiKeyId)
       if (key) {
@@ -524,7 +519,7 @@ export default {
       const id = row.id || this.ids[0]
       getModel(id).then((response) => {
         this.form = response.data
-        this.form.name = this.form.name || this.form.modelId
+        this.form.name = this.form.name || ''
         if (this.form.contextCount === null || this.form.contextCount === undefined) {
           this.form.contextCount = 50
         }
@@ -597,8 +592,9 @@ export default {
         }
       }
       const data = { ...this.form }
-      data.name = String(data.name || '').trim() || String(data.modelId || '').trim()
-      if (!data.name) {
+      data.name = String(data.name || '').trim() || null
+      data.clearName = !data.name
+      if (!String(data.modelId || '').trim()) {
         this.$modal.msgError('请填写模型ID')
         return null
       }

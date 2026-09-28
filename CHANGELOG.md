@@ -151,3 +151,24 @@
 - 联动：编辑支持名称、描述、Endpoint、启用状态；删除提示明确只影响用户配置，不影响市场资源。
 - 验证：`npm run build:prod`、`git diff --check` 通过；仅有既有资源体积和 Browserslist 提示。
 - 未完成：无。
+## 2026-09-28 — 扩展市场支持批量删除
+
+- 需求：市场资源支持批量删除，并同步删除所有用户的该 Skill/MCP 安装副本和绑定。
+- 修改：`src/views/chat/agentMarket/index.vue` 增加选择列与批量删除按钮；`src/api/ai/agentMarket.js` 支持逗号分隔 ID 删除请求。
+- 联动：调用 Admin 后端市场删除接口，清理 RAG 用户扩展数据。
+- 验证：`git diff --check` 通过；直接调用 Vue CLI 构建时因现有 optimize-cssnano-plugin 与当前 Node 依赖环境不兼容失败（`CSS minification error`）。
+- 未完成：无。
+## 2026-09-28 — 用户 MCP 管理改为用户资源
+
+- 需求：统一查看用户 Skill/MCP，并区分市场来源与用户上传来源；MCP 编辑回显并保存 JSON。
+- 修改：`src/views/chat/agentMarket/index.vue` 将页签改为“用户资源”，增加 Skill/MCP 类型和来源筛选；MCP 继续使用完整 JSON 编辑器。
+- 联动：改用 `/ai/agent/market/user-resource/list`，市场来源显示“市场”，用户来源显示“用户上传”。
+- 验证：`git diff --check` 通过；前端构建受现有 CSS 压缩依赖兼容性问题影响。
+- 未完成：无。
+## 2026-09-28 — 模型别名改为可选
+
+- 需求：模型配置不再默认把模型 ID 写入模型别名，别名允许为空。
+- 修改：`src/views/chat/model/index.vue` 移除失焦和编辑回显时的别名自动填充；提交时空别名按 `NULL` 发送，并增加清空别名标记。
+- 联动：配合 Admin 后端更新接口和 `rag_model_config.name` 可空迁移；模型 ID 仍为必填。
+- 验证：`npx eslint src/views/chat/model/index.vue --no-ignore` 通过（0 errors、11 条既有样式 warnings）；`git diff --check` 通过。`npm run build:prod` 受现有 CSS minifier 报错 `Cannot read properties of undefined (reading 'bind')` 阻断，与本次 Vue 文件无关。
+- 未完成：数据库迁移需在目标数据库执行；前端完整生产构建仍受现有 CSS minifier 环境问题阻断。
