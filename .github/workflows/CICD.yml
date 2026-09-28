@@ -9,6 +9,9 @@ jobs:
   build-and-deploy:
     # 构建环境使用 ubuntu
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
 
     steps:
       - name: 检出代码
@@ -31,8 +34,19 @@ jobs:
       - name: 构建dist
         run: npm run build:prod
 
+      - name: 发布到 Cloudflare Pages
+        id: cloudflare_pages
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy dist --project-name=lucky-admin-vue --branch=main
+
       # 清空目标服务器上的目录内容
       - name: 清空目标服务器该文件夹下内容
+        if: ${{ steps.cloudflare_pages.outcome != 'success' }}
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -44,6 +58,7 @@ jobs:
 
       # 部署到服务器
       - name: 上传打包后的资源到服务器
+        if: ${{ steps.cloudflare_pages.outcome != 'success' }}
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
