@@ -1,10 +1,10 @@
 ## 2026-09-29 — Admin 前端 Cloudflare 部署兜底
 
 - 需求：Admin 前端优先发布到 Cloudflare，失败时再走 SSH，避免慢速 SCP 阻塞发布。
-- 修改：`.github/workflows/CICD.yml` 增加 Cloudflare Pages 直传步骤；凭据缺失或 Pages 发布失败时才执行原有 SSH 清空和上传。
+- 修改：`.github/workflows/CICD.yml` 以 Node 16 构建 Vue，切换 Node 22 执行 Cloudflare Pages 直传；Pages 发布失败时才执行原有 SSH 清空和上传。
 - 联动：GitHub Secrets 已配置 `CLOUDFLARE_API_TOKEN`（Pages Write）和 `CLOUDFLARE_ACCOUNT_ID`，Pages 项目为 `lucky-admin-vue`。
-- 验证：待 GitHub Actions 通过 Cloudflare Pages 实际发布。
-- 未完成：无。
+- 验证：首次 CI 确认 Node 16 无法运行 Wrangler v4；修正后待重新验证。
+- 未完成：待 Cloudflare Pages 直传 CI 验证。
 
 ## 2026-09-28 — 强制模型别名保持可选
 
