@@ -1,3 +1,10 @@
+## 2026-09-28 — 强制模型别名保持可选
+
+- 需求：新增或修改模型配置时，模型 ID 必须保存；模型别名不填写时保持为空，不能自动带入模型 ID。
+- 修改：`src/views/chat/model/index.vue` 明确清理模型 ID 空白；Java `RagModelConfigServiceImpl.insertRagModelConfig` 对空别名统一保存为 `NULL`，前端继续提交 `clearName` 清空编辑态别名。
+- 联动：无接口字段变化；数据库 `rag_model_config.name` 继续使用可空字段。
+- 验证：`npx eslint src/views/chat/model/index.vue --no-ignore` 通过（0 errors、11 条既有样式 warnings）；Java Maven `lucky-ai -am compile` 通过；数据库已确认 `rag_model_config.name` 为可空。
+
 ## 2026-09-19 — 用户 MCP 编辑改为 JSON 编辑器
 
 - 需求：用户 MCP 编辑应直接修改标准 `mcpServers` JSON 配置。

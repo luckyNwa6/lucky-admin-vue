@@ -598,6 +598,7 @@ export default {
         this.$modal.msgError('请填写模型ID')
         return null
       }
+      data.modelId = String(data.modelId).trim()
       if (data.referenceConfig && typeof data.referenceConfig === 'string') {
         try {
           const parsed = JSON.parse(data.referenceConfig)
