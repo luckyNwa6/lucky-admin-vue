@@ -14,7 +14,7 @@
         </el-button>
       </div>
       <div class="tip">
-        这些接口无需 Admin 权限即可查询；仅开放列表读取，新增、修改、删除和其他接口仍受保护。
+        该接口无需 Admin 权限，仅返回 Agent 需要的下次经期和纪念日提醒信息。
       </div>
     </el-card>
 
@@ -43,22 +43,10 @@ export default {
     return {
       links: [
         {
-          name: '经期记录列表',
+          name: '时间提醒汇总',
           method: 'GET',
-          url: `${baseUrl}/reminder/period/list`,
-          description: '分页查询经期记录'
-        },
-        {
-          name: '重要日期列表',
-          method: 'GET',
-          url: `${baseUrl}/reminder/date/list`,
-          description: '分页查询重要日期'
-        },
-        {
-          name: '启用的重要日期',
-          method: 'GET',
-          url: `${baseUrl}/reminder/date/listAll`,
-          description: '查询全部启用的重要日期'
+          url: `${baseUrl}/reminder/summary`,
+          description: '下次经期日期、纪念日公历日期和倒计时'
         }
       ]
     }
