@@ -1,3 +1,11 @@
+## 2026-10-02 — 增加公开接口链接管理
+
+- 需求：在“公开测试”菜单下集中展示已开放给 Agent 查询的接口，并支持复制。
+- 修改：新增 `src/views/open/link/index.vue`，展示 3 个时间管理公开列表接口，支持单条复制和复制全部；新增 `java/lucky-admin-api/sql/public_links_menu.sql` 菜单脚本。
+- 联动：前端链接使用当前 Admin 域名的 `/proxyApi` 代理；无新增接口和权限放行。
+- 验证：待执行前端构建与 CI/CD；菜单 SQL 需在生产数据库执行后显示。
+- 未完成：无。
+
 ## 2026-09-29 — Admin 前端 Cloudflare 加速发布与服务器同步
 
 - 需求：Admin 前端通过 Cloudflare Pages 加速发布，同时始终同步到云服务器，保证现有 `admin.luckynwa.top` 更新。
