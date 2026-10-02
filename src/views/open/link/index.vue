@@ -74,7 +74,7 @@ export default {
       }
     },
     copyAll() {
-      this.copy(this.links.map(item => `${item.method} ${item.url}`).join('\n'))
+      this.copy(this.links.map(item => item.url).join('\n'))
     },
     fallbackCopy(text) {
       const textarea = document.createElement('textarea')
