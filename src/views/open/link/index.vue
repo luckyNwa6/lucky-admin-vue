@@ -46,7 +46,7 @@ export default {
           name: '时间提醒汇总',
           method: 'GET',
           url: `${baseUrl}/reminder/summary`,
-          description: '下次经期日期、纪念日公历日期和倒计时'
+          description: '统一返回提醒标题、公历日期和倒计时'
         }
       ]
     }
